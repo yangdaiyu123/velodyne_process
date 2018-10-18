@@ -14,6 +14,8 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
 )
 
+find_package(OpenCV REQUIRED)
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -119,6 +121,7 @@ catkin_package(
 include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -150,7 +153,8 @@ add_executable(${PROJECT_NAME}_node src/main.cpp
         src/stdafx.cpp
         src/obs_cluster.cpp
         src/kalmanFilter.cpp
-        src/hdl_grabber.cpp)
+        src/hdl_grabber.cpp
+        src/cluster_obs_by_image.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -160,6 +164,7 @@ add_executable(${PROJECT_NAME}_node src/main.cpp
 target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
   pcap
+  ${OpenCV_LIBS}
 )
 
 #############

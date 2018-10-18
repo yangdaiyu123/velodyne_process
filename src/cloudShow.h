@@ -23,7 +23,8 @@ namespace cloud_show{
 
     // void show_points(const CTrackersCenter& trackingCenter,const CurbDetection& curbDetection,
     // std::vector<int> &obs_idx,pcl::PointCloud<pcl::PointXYZI>::ConstPtr cloud_data);
-    void show_points(const CTrackersCenter& trackingCenter,pcl::PointCloud<pcl::PointXYZI>::ConstPtr cloud_data);
+    void show_points(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_obs,
+    pcl::PointCloud<pcl::PointXYZI>::ConstPtr cloud_ori);
 }
 
 #endif //PROJECT_CLOUDSHOW_H

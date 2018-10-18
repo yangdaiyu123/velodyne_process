@@ -5,11 +5,12 @@
 using namespace std;
 
 GridCreator::GridCreator()
-	: encode_grid_(0) {
+	: encode_grid_(0), m_num_length(400), m_num_width(150), m_grid_size(0.2)
+{
 }
 
-
-GridCreator::~GridCreator() {
+GridCreator::~GridCreator()
+{
 }
 
 //void
@@ -40,13 +41,11 @@ GridCreator::~GridCreator() {
 //	//of.close();
 //}
 
-void 
-GridCreator::createGrid(pcl::PointCloud<pcl::PointXYZI>::ConstPtr obsCloud, vector<int>& obsIndex)
+void GridCreator::createGrid(pcl::PointCloud<pcl::PointXYZI>::ConstPtr obsCloud,
+							 vector<int> &obsIndex)
 {
-	int num_width = 81;
-	int num_length = 81;
-	encode_grid_.resize(num_width * num_length,3);
-	grids_pt_.resize(num_width * num_length,GridInfo());
+	encode_grid_.resize(m_num_width * m_num_length, 0);
+	grids_pt_.resize(m_num_width * m_num_length, GridInfo());
 
 	for (unsigned count_pt = 0; count_pt < obsIndex.size(); count_pt++)
 	{
@@ -55,67 +54,67 @@ GridCreator::createGrid(pcl::PointCloud<pcl::PointXYZI>::ConstPtr obsCloud, vect
 		float z = obsCloud->points[obsIndex[count_pt]].z;
 
 		pcl::PointXYZI temp1;
-		temp1.x = x; temp1.y = y; temp1.z = z;
+		temp1.x = x;
+		temp1.y = y;
+		temp1.z = z;
 		pcl::PointXYZI p0_t = transport_point(temp1);
-//        pcl::PointXYZI p0_t= temp1;
+		//        pcl::PointXYZI p0_t= temp1;
 		x = p0_t.x;
 		y = p0_t.y;
 		z = p0_t.z;
 		int count_width, count_length;
 
-		count_width = (int)(40.5+x/0.5);
-		count_length = (int)(80.5-y/0.5);
+		count_width = (int)(m_num_width / 2 + x / m_grid_size);
+		count_length = (int)(m_num_length - y / m_grid_size);
 
-		if (count_width >= 0 && count_width < num_width &&
-			count_length >= 0 && count_length < num_length)
+		if (count_width >= 0 && count_width < m_num_width &&
+			count_length >= 0 && count_length < m_num_length)
 		{
-			int id = count_width + count_length * num_width;
+			int id = count_width + count_length * m_num_width;
 
 			grids_pt_[id].points_idx.push_back(obsIndex[count_pt]);
 			grids_pt_[id].points.push_back(p0_t);
 		}
 	}
 
-	calGridInfo(obsCloud,obsIndex);
-	
+	calGridInfo(obsCloud, obsIndex);
 }
 
-void 
-GridCreator::calGridInfo(pcl::PointCloud<pcl::PointXYZI>::ConstPtr obsCloud, vector<int>& obsIndex) {
-    int num_width = 81;
+void GridCreator::calGridInfo(pcl::PointCloud<pcl::PointXYZI>::ConstPtr obsCloud,
+							  vector<int> &obsIndex)
+{
+	for (int i = 0; i < grids_pt_.size(); i++)
+	{
+		double mean = 0;
+		double stdev = 0;
+		int pnum = grids_pt_[i].points.size();
+		if (pnum > 1)
+		{
+			int rows = i / m_num_width;
+			int cols = i % m_num_width;
+			float ptx = m_grid_size * (cols - m_num_width / 2) + m_grid_size / 2.0;
+			float pty = m_grid_size * (rows - m_num_length / 2) + m_grid_size / 2.0;
 
-    for (int i = 0; i < grids_pt_.size(); i++) {
-        double mean = 0;
-        double stdev = 0;
-        int pnum = grids_pt_[i].points.size();
-        if (pnum > 1) {
-            int rows = i / num_width;
-            int cols = i % num_width;
-            float ptx = 0.2 * (cols - 75) + 0.0 + 0.2 / 2.0;
-            float pty = 0.2 * (rows - 200) + 0.0 + 0.2 / 2.0;
+			for (int j = 0; j < pnum; j++)
+				mean += grids_pt_[i].points[j].z;
 
-            for (int j = 0; j < pnum; j++)
-                mean += grids_pt_[i].points[j].z;
+			mean /= pnum;
+			grids_pt_[i].meanz = mean;
 
-            mean /= pnum;
-            grids_pt_[i].meanz = mean;
+			for (int j = 0; j < pnum; j++)
+				stdev += (grids_pt_[i].points[j].z - mean) * (grids_pt_[i].points[j].z - mean);
 
-            for (int j = 0; j < pnum; j++)
-                stdev += (grids_pt_[i].points[j].z - mean) * (grids_pt_[i].points[j].z - mean);
+			stdev = sqrt(stdev / (pnum - 1));
+			grids_pt_[i].stdz = stdev;
 
-            stdev = sqrt(stdev / (pnum - 1));
-            grids_pt_[i].stdz = stdev;
-
-            if (mean > 0) {
-                encode_grid_[i] = 1;
-            } else {
-                encode_grid_[i] = 2;
-            }
-        }
-    }
+			if (mean > 0)
+			{
+				encode_grid_[i] = 1;
+			}
+			else
+			{
+				encode_grid_[i] = 2;
+			}
+		}
+	}
 }
-
-
-
-
-

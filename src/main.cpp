@@ -14,7 +14,8 @@
 #include "hazard_point_detect.h"
 #include "grid_obs_create.h"
 #include "cloudShow.h"
-#include "obs_cluster.h"
+// #include "obs_cluster.h"
+#include "cluster_obs_by_image.h"
 #include "hdl_grabber.h"
 
 ros::Publisher pub;
@@ -117,13 +118,16 @@ class HDL32EViewer
 			{
 				double t1 = pcl::getTime();
 
-				// vector<int> obs_idx;
-				// HazardDetection hazardDetection;
-				// hazardDetection.detectHazardPoint(cloud, cloudsrc, obs_idx);
+				vector<int> obs_idx;
+				HazardDetection hazardDetection;
+				hazardDetection.detectHazardPoint(cloud, cloudsrc, obs_idx);
+				std::cout << "obs time is " << pcl::getTime() - t1 << "s" << std::endl;
 
-				// std::cout << "obs time is " << pcl::getTime() - t1 << "s" << std::endl;
-				// // GridCreator grid_obs;
-				// // grid_obs.createGrid(cloud, obs_idx);
+				// GridCreator grid_obs;
+				// grid_obs.createGrid(cloud, obs_idx);
+				
+				ObsClusterImg obs_cluster;
+				obs_cluster.create_img(cloud,obs_idx);
 
 				// pcl::PointCloud<pcl::PointXYZI>::Ptr obsCloud(new pcl::PointCloud<pcl::PointXYZI>);
 				// for (auto idx : obs_idx)
@@ -138,11 +142,19 @@ class HDL32EViewer
 
 				// ObsCluster obsCluster(*obsCloud, curb_detection);
 				// obsCluster.cluster();
-				CObstaclePair obsCluster(cloud,cloudsrc);
-				trackersCenter.inputSingFrameFigures(obsCluster.group_list(), g_frame_num, pcl::getTime());
-				std::cout << "cluster time is " << pcl::getTime() - t1 << "s" << std::endl;
+
+				// CObstaclePair obsCluster(cloud,cloudsrc);
+				// trackersCenter.inputSingFrameFigures(obsCluster.group_list(), g_frame_num, pcl::getTime());
+				// std::cout << "cluster time is " << pcl::getTime() - t1 << "s" << std::endl;
+
 				//show
-				cloud_show::show_points(trackersCenter, cloud);
+				// pcl::PointCloud<pcl::PointXYZI>::Ptr obs_points(new pcl::PointCloud<pcl::PointXYZI>);
+				// for (auto one : trackingCenter.getTrackerList())
+				// {
+				// 	*obs_points += *(one.FiguresPro[0].cloudInside);
+				// }
+
+				//cloud_show::show_points(trackersCenter, cloud);
 
 				g_frame_num++;
 

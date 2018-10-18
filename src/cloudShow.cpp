@@ -94,33 +94,18 @@ void cloud_show::init_pub()
 //     return markerBox;
 // }
 
-void cloud_show::show_points(const CTrackersCenter &trackingCenter, pcl::PointCloud<pcl::PointXYZI>::ConstPtr cloud_data)
+void cloud_show::show_points(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_obs,
+    pcl::PointCloud<pcl::PointXYZI>::ConstPtr cloud_ori)
 {
-
     // visualization_msgs::MarkerArray markerArray;
     // pcl::PointCloud<pcl::PointXYZI>::Ptr curb_line(new pcl::PointCloud<pcl::PointXYZI>);
     // *curb_line += curbDetection.side_points_left_;
     // *curb_line += curbDetection.side_points_right_;
 
-    pcl::PointCloud<pcl::PointXYZI>::Ptr obs_points(new pcl::PointCloud<pcl::PointXYZI>);
-    for(auto one : trackingCenter.getTrackerList())
-    {
-        *obs_points+=*(one.FiguresPro[0].cloudInside);
-    }
-    // for (auto idx : obs_idx)
-    // {
-    //     obs_points->push_back(cloud_data->points[idx]);
-    // }
-    // for (auto group : trackingCenter.TrackerList_swap)
-    // {
-    //     //        *obs_points+=group._pts_inside;
-    //     markerArray.markers.push_back(get_box_marker(group));
-    // }
-
     // cloud_show::pub_box.publish(markerArray);
 
     sensor_msgs::PointCloud2 output2;
-    pcl::toROSMsg(*obs_points, output2);
+    pcl::toROSMsg(*cloud_obs, output2);
     output2.header.frame_id = frame_id;
     cloud_show::pub_obs.publish(output2);
 
@@ -130,7 +115,7 @@ void cloud_show::show_points(const CTrackersCenter &trackingCenter, pcl::PointCl
     // cloud_show::pub_curb.publish(output3);
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>);
-    for(auto pt : cloud_data->points)
+    for(auto pt : cloud_ori->points)
     {
         cloud->push_back(pt);
     }

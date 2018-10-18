@@ -55,9 +55,9 @@ HazardDetection::detectHazardPoint(pcl::PointCloud<pcl::PointXYZI>::ConstPtr clo
 		std::vector<double> thetaAng(VELO_LINE_DONW);
 		std::vector<bool> pTan2_Ang(VELO_LINE_DONW, 0);
 		for (unsigned j = 1; j < VELO_LINE_DONW-1; j++) {
-            unsigned int index_pre = get_idx(i, j - 1);
-            unsigned int index = get_idx(i, j);
-            unsigned int index_next = get_idx(i, j + 1);
+            unsigned int index_pre = get_idx(j-1, i);
+            unsigned int index = get_idx(j, i);
+            unsigned int index_next = get_idx(j+1, i);
             double L1 = cloudscr_ptr->points[index_pre].radius;
             double L2 = cloudscr_ptr->points[index].radius;
             double L3 = cloudscr_ptr->points[index_next].radius;

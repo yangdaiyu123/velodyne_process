@@ -23,13 +23,15 @@ public:
 	GridCreator();
 	~GridCreator();
 
-	void createGrid(pcl::PointCloud<pcl::PointXYZI>::ConstPtr obsCloud, std::vector<int>& obsIndex);
+	void createGrid(pcl::PointCloud<pcl::PointXYZI>::ConstPtr obsCloud, 
+					std::vector<int>& obsIndex);
 
 private:
 
+	void calGridInfo(pcl::PointCloud<pcl::PointXYZI>::ConstPtr obsCloud, 
+					std::vector<int>& obsIndex);
 
-	void
-		calGridInfo(pcl::PointCloud<pcl::PointXYZI>::ConstPtr obsCloud, std::vector<int>& obsIndex);
+	int m_grid_size;
 
 public:
 
@@ -38,6 +40,9 @@ public:
 	std::vector<GridInfo> grids_pt_;
 
     pcl::PointCloud<pcl::PointXYZI> grid_obs_points_;
+
+	int m_num_width;
+	int m_num_length;
 
 };
 
