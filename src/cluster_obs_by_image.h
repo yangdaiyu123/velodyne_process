@@ -7,23 +7,27 @@
 
 class ObsClusterImg
 {
-  public:
-    ObsClusterImg();
-    ~ObsClusterImg();
+public:
+  ObsClusterImg();
+  ~ObsClusterImg();
 
-    void create_img(pcl::PointCloud<pcl::PointXYZI>::ConstPtr cloud,
-                    const std::vector<int> &obs_idx);
+  void create_img(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud,
+                  const std::vector<int> &obs_idx);
 
-    void cluster();
+  void cluster();
 
-    cv::Mat mat() const { return m_img; };
+  cv::Mat mat() const { return m_img; };
 
-  private:
-    const int m_img_cols = 150;
-    const int m_img_rows = 400;
-    const float m_image_res = 0.2;
+  pcl::PointCloud<pcl::PointXYZI>::Ptr obs_point() const { return m_obs_cluster_pts; };
 
-    cv::Mat m_img;
+private:
+  const int m_img_cols = 400;
+  const int m_img_rows = 400;
+  const float m_image_res = 0.2;
+
+  pcl::PointCloud<pcl::PointXYZI>::Ptr m_obs_cluster_pts;
+
+  cv::Mat m_img;
 };
 
 #endif

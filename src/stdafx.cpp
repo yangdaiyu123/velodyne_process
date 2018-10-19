@@ -117,20 +117,20 @@ pcl::PointXYZI transform_point(pcl::PointXYZI pt)
     double dz = g_LiDAR_pos[2];
 
     //rotate the points from lidar to vehicle
-    pts.y = pts.y * cos(pitchR) - pts.z * sin(pitchR);
-    pts.z = pts.y * sin(pitchR) + pts.z * cos(pitchR);
+    pt.y = pt.y * cos(pitchR) - pt.z * sin(pitchR);
+    pt.z = pt.y * sin(pitchR) + pt.z * cos(pitchR);
 
-    pts.x = pts.x * cos(rollR) + pts.z * sin(rollR);
-    pts.z = -pts.x * sin(rollR) + pts.z * cos(rollR);
+    pt.x = pt.x * cos(rollR) + pt.z * sin(rollR);
+    pt.z = -pt.x * sin(rollR) + pt.z * cos(rollR);
 
-    pts.x = pts.x * cos(yawR) - pts.y * sin(yawR);
-    pts.y = pts.x * sin(yawR) + pts.y * cos(yawR);
+    pt.x = pt.x * cos(yawR) - pt.y * sin(yawR);
+    pt.y = pt.x * sin(yawR) + pt.y * cos(yawR);
 
-    pts.x += dx;
-    pts.y += dy;
-    pts.z += dz;
+    pt.x += dx;
+    pt.y += dy;
+    pt.z += dz;
 
-    return pts;
+    return pt;
 }
 
 void readCaliFile(std::string path)

@@ -4,7 +4,7 @@ using namespace cv;
 using namespace std;
 
 ObsClusterImg::ObsClusterImg()
-    :m_img(m_img_rows,m_img_cols,CV_8U)
+    : m_img(m_img_rows, m_img_cols, CV_8U), m_obs_cluster_pts(new pcl::PointCloud<pcl::PointXYZI>)
 {
 }
 
@@ -12,40 +12,96 @@ ObsClusterImg::~ObsClusterImg()
 {
 }
 
-void ObsClusterImg::create_img(pcl::PointCloud<pcl::PointXYZI>::ConstPtr cloud,
+void show_image(cv::Mat img, int times, std::string window_name)
+{
+    Mat img_show;
+    resize(img, img_show, img.size() * times);
+    imshow(window_name, img_show);
+    waitKey(0);
+}
+
+void ObsClusterImg::create_img(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud,
                                const std::vector<int> &obs_idx)
 {
+    m_img = Mat::zeros(m_img.size(), m_img.type());
+    m_img.at<uchar>(m_img_rows / 2, m_img_cols / 2) = 128;
     for (unsigned count_pt = 0; count_pt < obs_idx.size(); count_pt++)
     {
-        float x = cloud->points[obs_idx[count_pt]].x;
-        float y = cloud->points[obs_idx[count_pt]].y;
-        float z = cloud->points[obs_idx[count_pt]].z;
+        pcl::PointXYZI tmp;
+        tmp.x = cloud->points[obs_idx[count_pt]].x;
+        tmp.y = cloud->points[obs_idx[count_pt]].y;
+        tmp.z = cloud->points[obs_idx[count_pt]].z;
+        m_obs_cluster_pts->push_back(tmp);
 
-        pcl::PointXYZI temp1;
-        temp1.x = x;
-        temp1.y = y;
-        temp1.z = z;
-        pcl::PointXYZI p0_t = transform_point(temp1);
-        //        pcl::PointXYZI p0_t= temp1;
-        x = p0_t.x;
-        y = p0_t.y;
-        z = p0_t.z;
-        
+        int count_col = (int)(m_img_cols / 2 + tmp.x / m_image_res);
+        int count_row = (int)(m_img_rows / 2 - tmp.y / m_image_res);
 
-        int count_width = (int)(m_img_cols / 2 + x / m_image_res);
-        int count_row = (int)(m_img_rows / 2 - y / m_image_res);
-
-        if (count_width >= 0 && count_width < m_img_cols &&
+        if (count_col >= 0 && count_col < m_img_cols &&
             count_row >= 0 && count_row < m_img_rows)
         {
-            m_img.at<uchar>(count_width,count_row)=255;
-            // int id = count_width + count_row * m_img_cols;
+            m_img.at<uchar>(count_row, count_col) = 255;
+            // int id = count_col + count_row * m_img_cols;
 
             // grids_pt_[id].points_idx.push_back(obsIndex[count_pt]);
             // grids_pt_[id].points.push_back(p0_t);
         }
     }
-    
-    imshow("res",m_img);
-    waitKey(0);
+
+    // show_image(m_img,2,"ori");
+}
+
+void ObsClusterImg::cluster()
+{
+    Mat img_dilate;
+    int kernal_size = 3;
+
+    cv::Mat element = cv::getStructuringElement(MorphShapes::MORPH_RECT,
+                                                cv::Size(kernal_size, kernal_size));
+
+    //膨胀
+    cv::dilate(m_img, img_dilate, element);
+
+    // show_image(img_dilate, 2, "dilate res");
+
+    std::vector<std::vector<cv::Point>> contours;
+    findContours(img_dilate, contours, RETR_EXTERNAL, CHAIN_APPROX_NONE);
+    std::cout << "Find " << contours.size() << " Contours" << std::endl;
+
+    Mat contours_result;
+    cvtColor(m_img, contours_result, COLOR_GRAY2BGR);
+
+    drawContours(contours_result, contours, -1, cv::Scalar(0, 0, 255));
+    // show_image(contours_result, 2, "Contours result");
+
+    // Mat poli_result;
+    // cvtColor(m_img,poli_result,COLOR_GRAY2BGR);
+    // fillPoly(poli_result,contours,Scalar(255,0,0));
+    // show_image(poli_result,2,"polygon");
+
+    for(auto it=contours.begin();it!=contours.end();it++)
+    {
+        double area=contourArea(*it);
+        if(area<40)
+        {
+            contours.erase(it);
+            it--;
+        }
+    }
+
+    for (auto &pt : m_obs_cluster_pts->points)
+    {
+        int count_col = (int)(m_img_cols / 2 + pt.x / m_image_res);
+        int count_row = (int)(m_img_rows / 2 - pt.y / m_image_res);
+
+        for (int i=0;i<contours.size();i++)
+        {
+            auto contour=contours[i];
+
+            if(pointPolygonTest(contour, Point2f(count_col,count_row),false)>0)
+            {
+                pt.intensity=(i*10)%255;
+                break;
+            }
+        }
+    }
 }

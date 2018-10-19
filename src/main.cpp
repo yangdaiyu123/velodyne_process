@@ -14,7 +14,7 @@
 #include "hazard_point_detect.h"
 #include "grid_obs_create.h"
 #include "cloudShow.h"
-// #include "obs_cluster.h"
+#include "obs_cluster.h"
 #include "cluster_obs_by_image.h"
 #include "hdl_grabber.h"
 
@@ -23,7 +23,7 @@ using namespace pcl;
 using namespace pcl::console;
 //pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>);
 
-CTrackersCenter trackersCenter;
+CTrackersCenter trackingCenter;
 int g_frame_num = 0;
 
 #define SHOW_FPS 0
@@ -138,14 +138,15 @@ class HDL32EViewer
 				// GridCreator grid_obs;
 				// grid_obs.createGrid(cloud, obs_idx);
 
-				// ObsClusterImg obs_cluster;
-				// obs_cluster.create_img(cloud, obs_idx);
+				ObsClusterImg obs_cluster;
+				obs_cluster.create_img(cloud_ori, obs_idx);
+				obs_cluster.cluster();
 
-				pcl::PointCloud<pcl::PointXYZI>::Ptr obsCloud(new pcl::PointCloud<pcl::PointXYZI>);
-				for (auto idx : obs_idx)
-				{
-					obsCloud->push_back(cloud_ori->points[idx]);
-				}
+				// pcl::PointCloud<pcl::PointXYZI>::Ptr obsCloud(new pcl::PointCloud<pcl::PointXYZI>);
+				// for (auto idx : obs_idx)
+				// {
+				// 	obsCloud->push_back(cloud_ori->points[idx]);
+				// }
 
 				// CurbDetection curb_detection(*obsCloud);
 				// curb_detection.detectCurb();
@@ -156,17 +157,17 @@ class HDL32EViewer
 				// obsCluster.cluster();
 
 				// CObstaclePair obsCluster(cloud,cloudsrc);
-				// trackersCenter.inputSingFrameFigures(obsCluster.group_list(), g_frame_num, pcl::getTime());
+				// trackingCenter.inputSingFrameFigures(obsCluster.group_list(), g_frame_num, pcl::getTime());
 				// std::cout << "cluster time is " << pcl::getTime() - t1 << "s" << std::endl;
 
 				//show
-				// pcl::PointCloud<pcl::PointXYZI>::Ptr obs_points(new pcl::PointCloud<pcl::PointXYZI>);
+				// pcl::PointCloud<pcl::PointXYZI>::Ptr obsCloud(new pcl::PointCloud<pcl::PointXYZI>);
 				// for (auto one : trackingCenter.getTrackerList())
 				// {
-				// 	*obs_points += *(one.FiguresPro[0].cloudInside);
+				// 	*obsCloud += *(one.FiguresPro[0].cloudInside);
 				// }
 
-				cloud_show::show_points(obsCloud, cloud_ori);
+				cloud_show::show_points(obs_cluster.obs_point(), cloud_ori);
 
 				g_frame_num++;
 
