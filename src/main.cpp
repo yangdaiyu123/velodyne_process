@@ -118,6 +118,18 @@ class HDL32EViewer
 			{
 				double t1 = pcl::getTime();
 
+				pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ori(new pcl::PointCloud<pcl::PointXYZI>);
+				// pcl::PointCloud<pcl::PointSrc>::Ptr cloud_src(new pcl::PointCloud<pcl::PointSrc>);
+				for(auto pt : cloud->points)
+				{
+					pt=transform_point(pt);
+					// pcl::PointSrc tmpSrc;
+					// tmpSrc.angle=atan2(pt.y,pt.x)*100+0.5;
+					// tmpSrc.radius=sqrt(pt.x*pt.x+pt.y*pt.y+pt.z*pt.z)*500+0.5;
+					cloud_ori->push_back(pt);
+					// cloud_src->push_back(tmpSrc);
+				}
+
 				vector<int> obs_idx;
 				HazardDetection hazardDetection;
 				hazardDetection.detectHazardPoint(cloud, cloudsrc, obs_idx);
@@ -125,15 +137,15 @@ class HDL32EViewer
 
 				// GridCreator grid_obs;
 				// grid_obs.createGrid(cloud, obs_idx);
-				
-				ObsClusterImg obs_cluster;
-				obs_cluster.create_img(cloud,obs_idx);
 
-				// pcl::PointCloud<pcl::PointXYZI>::Ptr obsCloud(new pcl::PointCloud<pcl::PointXYZI>);
-				// for (auto idx : obs_idx)
-				// {
-				// 	obsCloud->push_back(cloud->points[idx]);
-				// }
+				// ObsClusterImg obs_cluster;
+				// obs_cluster.create_img(cloud, obs_idx);
+
+				pcl::PointCloud<pcl::PointXYZI>::Ptr obsCloud(new pcl::PointCloud<pcl::PointXYZI>);
+				for (auto idx : obs_idx)
+				{
+					obsCloud->push_back(cloud_ori->points[idx]);
+				}
 
 				// CurbDetection curb_detection(*obsCloud);
 				// curb_detection.detectCurb();
@@ -154,7 +166,7 @@ class HDL32EViewer
 				// 	*obs_points += *(one.FiguresPro[0].cloudInside);
 				// }
 
-				//cloud_show::show_points(trackersCenter, cloud);
+				cloud_show::show_points(obsCloud, cloud_ori);
 
 				g_frame_num++;
 

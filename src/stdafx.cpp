@@ -5,21 +5,28 @@
 
 using namespace std;
 
-vector<float> g_threshold_const_positive[VELO_LINE_DONW + 1]; //点云障碍物阈值，正
-vector<float> g_threshold_const_negative[VELO_LINE_DONW + 1]; //点云障碍物阈值，负
+vector<float> g_threshold_const_positive[VELO_LINE_DOWN + 1]; //点云障碍物阈值，正
+vector<float> g_threshold_const_negative[VELO_LINE_DOWN + 1]; //点云障碍物阈值，负
 
-double VELO_ANG_32[32] = {-30.67, -9.33, -29.33, -8.00, -28.00,
-                          -6.67, -26.67, -5.33, -25.33, -4.00,
-                          -24.00, -2.67, -22.67, -1.33, -21.33,
-                          0.00, -20.00, 1.33, -18.67, 2.67,
-                          -17.33, 4.00, -16.00, 5.33, -14.67,
-                          6.67, -13.33, 8.00, -12.00, 9.33,
-                          -10.67, 10.67};
+// double VELO_ANG_32[32] = {-30.67, -9.33, -29.33, -8.00, -28.00,
+//                           -6.67, -26.67, -5.33, -25.33, -4.00,
+//                           -24.00, -2.67, -22.67, -1.33, -21.33,
+//                           0.00, -20.00, 1.33, -18.67, 2.67,
+//                           -17.33, 4.00, -16.00, 5.33, -14.67,
+//                           6.67, -13.33, 8.00, -12.00, 9.33,
+//                           -10.67, 10.67};
+
+double VELO_ANG_32[32] = {-30.67, -29.33, -28.00, -26.67, -25.33,
+                          -24.00, -22.67, -21.33, -20.00, -18.67,
+                          -17.33, -16.00, -14.67, -13.33, -12.00,
+                          -10.67, -9.33, -8.00, -6.67, -5.33, -4.00,
+                          -2.67, -1.33, 0.00, 1.33, 2.67, 4.00,
+                          5.33, 6.67, 8.00, 9.33, 10.67};
 
 double velo_ang_rad[32];
 
 //LiDAR pos information
-double g_LiDAR_pos[6] = {0, 1.3, 1.99, 2.12, 0.55, 180.0};
+double g_LiDAR_pos[6] = {0, 1.3, 2.99, 2.12, 0.55, 180.0};
 
 //RFans LiDAR offset per line of four lines
 //int off_idx[4]={0,55,14,70};
@@ -68,7 +75,7 @@ void filterThresholdOfObstacle(double laserHeightM, double laserPitchD, double a
 
     //parameters initialization
     ///count
-    int numLine = VELO_LINE_DONW;
+    int numLine = VELO_LINE_DOWN;
     int numAng = ANG_THRESHOLD_COUNT / 2;
     //constant threshold
     //    float obstacleHeightThre = 0.1;
@@ -99,7 +106,7 @@ void filterThresholdOfObstacle(double laserHeightM, double laserPitchD, double a
     }
 }
 
-pcl::PointXYZI transport_point(pcl::PointXYZI pts)
+pcl::PointXYZI transform_point(pcl::PointXYZI pt)
 {
 
     double pitchR = g_LiDAR_pos[3] * M_PI / 180;

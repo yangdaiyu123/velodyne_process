@@ -95,7 +95,7 @@ void cloud_show::init_pub()
 // }
 
 void cloud_show::show_points(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_obs,
-    pcl::PointCloud<pcl::PointXYZI>::ConstPtr cloud_ori)
+    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud)
 {
     // visualization_msgs::MarkerArray markerArray;
     // pcl::PointCloud<pcl::PointXYZI>::Ptr curb_line(new pcl::PointCloud<pcl::PointXYZI>);
@@ -113,12 +113,6 @@ void cloud_show::show_points(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_obs,
     // pcl::toROSMsg(*curb_line, output3);
     // output3.header.frame_id = frame_id;
     // cloud_show::pub_curb.publish(output3);
-
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>);
-    for(auto pt : cloud_ori->points)
-    {
-        cloud->push_back(pt);
-    }
 
     sensor_msgs::PointCloud2 output4;
     pcl::toROSMsg(*cloud, output4);

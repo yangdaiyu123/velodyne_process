@@ -57,7 +57,7 @@ void GridCreator::createGrid(pcl::PointCloud<pcl::PointXYZI>::ConstPtr obsCloud,
 		temp1.x = x;
 		temp1.y = y;
 		temp1.z = z;
-		pcl::PointXYZI p0_t = transport_point(temp1);
+		pcl::PointXYZI p0_t = transform_point(temp1);
 		//        pcl::PointXYZI p0_t= temp1;
 		x = p0_t.x;
 		y = p0_t.y;

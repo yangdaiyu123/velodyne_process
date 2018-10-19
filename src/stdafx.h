@@ -9,7 +9,7 @@
 #include <pcl_conversions/pcl_conversions.h>
 
 #define VELO_LINE 32
-#define VELO_LINE_DONW 23
+#define VELO_LINE_DOWN 27
 #define ANG_THRESHOLD_COUNT 3600
 
 // struct PointSrc{
@@ -31,8 +31,8 @@ extern double VELO_ANG_32[32];
 extern double g_LiDAR_pos[6];
 extern double velo_ang_rad[32];
 
-extern std::vector<float> g_threshold_const_positive[VELO_LINE_DONW + 1]; //点云障碍物阈值，正
-extern std::vector<float> g_threshold_const_negative[VELO_LINE_DONW + 1]; //点云障碍物阈值，负
+extern std::vector<float> g_threshold_const_positive[VELO_LINE_DOWN + 1]; //点云障碍物阈值，正
+extern std::vector<float> g_threshold_const_negative[VELO_LINE_DOWN + 1]; //点云障碍物阈值，负
 
 //extern std::string g_file_dir;
 
@@ -57,7 +57,7 @@ inline int get_idx(int idx_beam,int idx_sweep){
 void readCaliFile(std::string path);
 
 pcl::PointXYZI
-transport_point(pcl::PointXYZI pts);
+transform_point(pcl::PointXYZI pt);
 
 #endif //PROJECT_STDAFX_H
 
