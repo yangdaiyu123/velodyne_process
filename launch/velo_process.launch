@@ -7,10 +7,10 @@
 
 
 <!-- -->
-<node pkg="velo_process_node" type="velo_process_node" name="velo_process_node" args="-pcapFile $(arg pcap_path)" output="screen" />
+<node pkg="velo_process" type="velo_process_node" name="velo_process_node" args="-pcapFile $(arg pcap_path)" output="screen" />
 
 
-<node name="rviz" pkg="rviz" type="rviz" args="-d $(find velo_process_node)/cluster.rviz" required="true" />
+<node name="rviz" pkg="rviz" type="rviz" args="-d $(find velo_process)/cluster.rviz" required="true" />
 
 
 </launch>

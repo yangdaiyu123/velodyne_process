@@ -1,4 +1,5 @@
 #include "cluster_obs_by_image.h"
+#include <pcl/common/time.h>
 
 using namespace cv;
 using namespace std;
@@ -88,6 +89,8 @@ void ObsClusterImg::cluster()
         }
     }
 
+    auto t1=pcl::getTime();
+    //TODO:耗时0.8秒左右，太长了
     for (auto &pt : m_obs_cluster_pts->points)
     {
         int count_col = (int)(m_img_cols / 2 + pt.x / m_image_res);
@@ -104,4 +107,5 @@ void ObsClusterImg::cluster()
             }
         }
     }
+    std::cout<<"find "<<pcl::getTime()-t1<<"s"<<std::endl;
 }

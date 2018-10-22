@@ -6,6 +6,8 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /cloud1/Status1
+        - /obstacle1
       Splitter Ratio: 0.5
     Tree Height: 329
   - Class: rviz/Selection
@@ -26,7 +28,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: cloud
 Preferences:
   PromptSaveOnExit: true
 Visualization Manager:
@@ -75,7 +77,7 @@ Visualization Manager:
       Size (Pixels): 3
       Size (m): 0.05000000074505806
       Style: Flat Squares
-      Topic: /velo_obs/cloud
+      Topic: /velo_process/cloud
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -95,7 +97,7 @@ Visualization Manager:
       Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
-      Max Intensity: 50
+      Max Intensity: 170
       Min Color: 0; 0; 0
       Min Intensity: 0
       Name: obstacle
@@ -105,7 +107,7 @@ Visualization Manager:
       Size (Pixels): 3
       Size (m): 0.10000000149011612
       Style: Flat Squares
-      Topic: /velo_obs/obs
+      Topic: /velo_process/obs
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -135,7 +137,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 163.32284545898438
+      Distance: 50.210243225097656
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -150,10 +152,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.9397975206375122
+      Pitch: 1.3897970914840698
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.5722569227218628
+      Yaw: 1.4972569942474365
     Saved: ~
 Window Geometry:
   Displays:
