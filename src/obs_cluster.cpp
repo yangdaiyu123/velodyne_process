@@ -59,11 +59,10 @@ CObstaclePair::~CObstaclePair()
 //     return (pt.x-x1)*(pt.x-x2)<0;
 // }
 
-CObstaclePair::CObstaclePair(pcl::PointCloud<pcl::PointXYZI>::ConstPtr ori_xyz
-        , pcl::PointCloud<pcl::PointSrc>::ConstPtr ori_scr)
+CObstaclePair::CObstaclePair(pcl::PointCloud<pcl::PointXYZI>::Ptr ori_xyz
+        , pcl::PointCloud<pcl::PointSrc>::Ptr ori_scr)
 //                             const CurbDetection& curbDetection)
 //:m_curb(curbDetection)
-:m_obs_cloud(new pcl::PointCloud<pcl::PointXYZI>)
 {
 
     //initialize
@@ -271,7 +270,7 @@ void CObstaclePair::FeaturePair_Grouping(std::vector<std::vector<std::pair<unsig
     vector<Tracking_group> group_swap(0);
     for (unsigned igroup = 0; igroup < groupList.size(); igroup++) {
         if(GroupPropertiesCal(groupList[igroup])){
-            *m_obs_cloud+=*groupList[igroup].Gproperties.cloudInside;
+            // *m_obs_cloud+=*groupList[igroup].Gproperties.cloudInside;
             // if (if_point_within_curb(groupList[igroup].Gproperties.center))
             // {
                 group_swap.push_back(groupList[igroup]);
@@ -678,6 +677,7 @@ long Tracker::getLastFnumber()
 }
 
 CTrackersCenter::CTrackersCenter()
+:_obs_points(new pcl::PointCloud<pcl::PointXYZI>)
 {
     trackerIDCount = 0;
 }
@@ -699,6 +699,7 @@ long CTrackersCenter::getNewobjID()
 
 void CTrackersCenter::inputSingFrameFigures(std::vector<Tracking_group> figureList, long frameID,double cur_time)
 {
+    _obs_points->clear();
     ////0.figureList initialize
     for(unsigned i = 0 ; i < figureList.size() ; i++)
     {
@@ -843,9 +844,10 @@ void CTrackersCenter::inputSingFrameFigures(std::vector<Tracking_group> figureLi
     {
         if(frameID - TrackerList[i].getLastFnumber() <= 5)
         {
-            for(auto &one : *(TrackerList[i].FiguresPro[0].cloudInside))
+            for(auto one : *(TrackerList[i].FiguresPro[0].cloudInside))
             {
                 one.intensity=(TrackerList[i].ID)%255;
+                _obs_points->push_back(one);
             }
             TrackerList_swap.push_back(TrackerList[i]);
         }

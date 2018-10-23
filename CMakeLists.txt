@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
 )
 
+SET(OpenCV_DIR /usr/local/lib/cmake/opencv4)
 find_package(OpenCV REQUIRED)
 
 ## System dependencies are found with CMake's conventions
@@ -144,17 +145,9 @@ include_directories(
 ## target back to the shorter version for ease of user use
 ## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
 # set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
-add_executable(${PROJECT_NAME}_node src/main.cpp
-        src/grid_obs_create.cpp
-        src/hazard_point_detect.cpp
-        src/road_curb_detection.cpp
-        src/RansacLine.cpp
-        src/cloudShow.cpp
-        src/stdafx.cpp
-        src/obs_cluster.cpp
-        src/kalmanFilter.cpp
-        src/hdl_grabber.cpp
-        src/cluster_obs_by_image.cpp)
+
+aux_source_directory(./src DIRSRCS)
+add_executable(${PROJECT_NAME}_node ${DIRSRCS})
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above

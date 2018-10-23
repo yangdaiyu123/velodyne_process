@@ -14,8 +14,9 @@
 #include "hazard_point_detect.h"
 #include "grid_obs_create.h"
 #include "cloudShow.h"
-#include "obs_cluster.h"
+// #include "obs_cluster.h"
 #include "cluster_obs_by_image.h"
+#include "obs_cluster_dbscan.h"
 #include "hdl_grabber.h"
 
 ros::Publisher pub;
@@ -119,28 +120,28 @@ class HDL32EViewer
 				double t1 = pcl::getTime();
 
 				pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ori(new pcl::PointCloud<pcl::PointXYZI>);
-				// pcl::PointCloud<pcl::PointSrc>::Ptr cloud_src(new pcl::PointCloud<pcl::PointSrc>);
+				pcl::PointCloud<pcl::PointSrc>::Ptr cloud_src(new pcl::PointCloud<pcl::PointSrc>);
 				for(auto pt : cloud->points)
 				{
 					pt=transform_point(pt);
-					// pcl::PointSrc tmpSrc;
-					// tmpSrc.angle=atan2(pt.y,pt.x)*100+0.5;
-					// tmpSrc.radius=sqrt(pt.x*pt.x+pt.y*pt.y+pt.z*pt.z)*500+0.5;
+					pcl::PointSrc tmpSrc;
+					tmpSrc.angle=atan2(pt.y,pt.x)*100+0.5;
+					tmpSrc.radius=sqrt(pt.x*pt.x+pt.y*pt.y+pt.z*pt.z)*500+0.5;
 					cloud_ori->push_back(pt);
-					// cloud_src->push_back(tmpSrc);
+					cloud_src->push_back(tmpSrc);
 				}
 
-				vector<int> obs_idx;
-				HazardDetection hazardDetection;
-				hazardDetection.detectHazardPoint(cloud, cloudsrc, obs_idx);
-				std::cout << "obs time is " << pcl::getTime() - t1 << "s" << std::endl;
+				// vector<int> obs_idx;
+				// HazardDetection hazardDetection;
+				// hazardDetection.detectHazardPoint(cloud, cloudsrc, obs_idx);
+				// std::cout << "obs time is " << pcl::getTime() - t1 << "s" << std::endl;
 
 				// GridCreator grid_obs;
 				// grid_obs.createGrid(cloud, obs_idx);
 
-				ObsClusterImg obs_cluster;
-				obs_cluster.create_img(cloud_ori, obs_idx);
-				obs_cluster.cluster();
+				// ObsClusterImg obs_cluster;
+				// obs_cluster.create_img(cloud_ori, obs_idx);
+				// obs_cluster.cluster();
 
 				// pcl::PointCloud<pcl::PointXYZI>::Ptr obsCloud(new pcl::PointCloud<pcl::PointXYZI>);
 				// for (auto idx : obs_idx)
@@ -153,12 +154,14 @@ class HDL32EViewer
 
 				// std::cout << "curb time is " << pcl::getTime() - t1 << "s" << std::endl;
 
-				// ObsCluster obsCluster(*obsCloud, curb_detection);
+				// time_t tt1=pcl::getTime();
+				// ObsCluster obsCluster(*obsCloud);
 				// obsCluster.cluster();
+				// std::cout << "cluster time is " << pcl::getTime() - tt1 << "s" << std::endl;
 
-				// CObstaclePair obsCluster(cloud,cloudsrc);
-				// trackingCenter.inputSingFrameFigures(obsCluster.group_list(), g_frame_num, pcl::getTime());
-				// std::cout << "cluster time is " << pcl::getTime() - t1 << "s" << std::endl;
+				CObstaclePair obsCluster(cloud_ori,cloud_src);
+				trackingCenter.inputSingFrameFigures(obsCluster.group_list(), g_frame_num, pcl::getTime());
+				std::cout << "cluster time is " << pcl::getTime() - t1 << "s" << std::endl;
 
 				//show
 				// pcl::PointCloud<pcl::PointXYZI>::Ptr obsCloud(new pcl::PointCloud<pcl::PointXYZI>);
@@ -167,7 +170,7 @@ class HDL32EViewer
 				// 	*obsCloud += *(one.FiguresPro[0].cloudInside);
 				// }
 
-				cloud_show::show_points(obs_cluster.obs_point(), cloud_ori);
+				cloud_show::show_points(trackingCenter.obs_points(), cloud_ori);
 
 				g_frame_num++;
 
@@ -201,7 +204,7 @@ int main(int argc, char **argv)
 {
 	// Initialize ROS
 	ros::init(argc, argv, "velo_process");
-	ros::NodeHandle nh;
+	// ros::NodeHandle nh;
 
 	std::string hdlCalibration, pcapFile, format("XYZI");
 

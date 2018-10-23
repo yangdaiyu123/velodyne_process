@@ -18,7 +18,7 @@ void show_image(cv::Mat img, int times, std::string window_name)
     Mat img_show;
     resize(img, img_show, img.size() * times);
     imshow(window_name, img_show);
-    waitKey(0);
+    waitKey(10);
 }
 
 void ObsClusterImg::create_img(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud,
@@ -66,13 +66,12 @@ void ObsClusterImg::cluster()
 
     std::vector<std::vector<cv::Point>> contours;
     findContours(img_dilate, contours, RETR_EXTERNAL, CHAIN_APPROX_NONE);
-    std::cout << "Find " << contours.size() << " Contours" << std::endl;
-
+    
     Mat contours_result;
     cvtColor(m_img, contours_result, COLOR_GRAY2BGR);
 
     drawContours(contours_result, contours, -1, cv::Scalar(0, 0, 255));
-    // show_image(contours_result, 2, "Contours result");
+    show_image(contours_result, 2, "Contours result");
 
     // Mat poli_result;
     // cvtColor(m_img,poli_result,COLOR_GRAY2BGR);
@@ -82,12 +81,25 @@ void ObsClusterImg::cluster()
     for(auto it=contours.begin();it!=contours.end();it++)
     {
         double area=contourArea(*it);
+
         if(area<40)
         {
             contours.erase(it);
             it--;
+            continue;
+        }
+
+        Rect rect=boundingRect(*it);
+        float ratio=(float)rect.width/(float)rect.height;
+        if(ratio<0.2||ratio>5) 
+        {
+            contours.erase(it);
+            it--;
+            continue;
         }
     }
+    std::cout << "Find " << contours.size() << " Contours" << std::endl;
+    std::cout << "obs points num is " << m_obs_cluster_pts->size() << std::endl;
 
     auto t1=pcl::getTime();
     //TODO:耗时0.8秒左右，太长了
@@ -107,5 +119,5 @@ void ObsClusterImg::cluster()
             }
         }
     }
-    std::cout<<"find "<<pcl::getTime()-t1<<"s"<<std::endl;
+    std::cout<<"cluster time is "<<pcl::getTime()-t1<<"s"<<std::endl;
 }

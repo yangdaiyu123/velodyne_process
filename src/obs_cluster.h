@@ -51,8 +51,8 @@ public:
 //    CObstaclePair();
 //    CObstaclePair(pcl::PointCloud<pcl::PointXYZI>::Ptr ori_xyz, pcl::PointCloud<PointSrc>::Ptr ori_scr,
 //    const CurbDetection& curbDetection);
-    CObstaclePair(pcl::PointCloud<pcl::PointXYZI>::ConstPtr ori_xyz
-            , pcl::PointCloud<pcl::PointSrc>::ConstPtr ori_scr);
+    CObstaclePair(pcl::PointCloud<pcl::PointXYZI>::Ptr ori_xyz
+            , pcl::PointCloud<pcl::PointSrc>::Ptr ori_scr);
     ~CObstaclePair();
 
     //function
@@ -84,16 +84,14 @@ private:
     // bool if_point_within_curb(pcl::PointXYZI pt);
 
     //variable
-public:
-    pcl::PointCloud<pcl::PointXYZI>::Ptr m_obs_cloud;
 
 private:
 
     int num_sweep;
 
-    pcl::PointCloud<pcl::PointXYZI>::ConstPtr m_ori_xyz;
+    pcl::PointCloud<pcl::PointXYZI>::Ptr m_ori_xyz;
 
-    pcl::PointCloud<pcl::PointSrc>::ConstPtr m_ori_src;
+    pcl::PointCloud<pcl::PointSrc>::Ptr m_ori_src;
 
     std::vector<Tracking_group> m_groupList_res;
 
@@ -151,7 +149,7 @@ public:
 
     std::vector<Tracker> getTrackerList() const {return TrackerList;}
 
-
+    pcl::PointCloud<pcl::PointXYZI>::Ptr obs_points() const {return _obs_points;}
 
 private:
     long getNewobjID();
@@ -169,6 +167,8 @@ private:
     std::vector<Tracker> TrackerList;
 
     double time_;
+
+    pcl::PointCloud<pcl::PointXYZI>::Ptr _obs_points;
 };
 
 float figureSimiCalculation(Tracker tracker, Tracking_group figure);
