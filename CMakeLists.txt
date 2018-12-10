@@ -153,7 +153,7 @@ add_executable(${PROJECT_NAME}_node src/main.cpp
         src/stdafx.cpp
         src/obs_cluster.cpp
         src/kalmanFilter.cpp
-        src/hdl_grabber.cpp
+        # src/hdl_grabber.cpp
         src/cluster_obs_by_image.cpp)
 
 ## Add cmake target dependencies of the executable

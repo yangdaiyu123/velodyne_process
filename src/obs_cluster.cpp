@@ -1,621 +1,202 @@
 //
-// Created by howstar on 18-6-5.
+// Created by howstar on 18-7-13.
 //
-#include "stdafx.h"
-// #include "CObstaclePair.h"
+
 #include "obs_cluster.h"
-// #include "cloudShow.h"
-//#include <pcl/features/moment_of_inertia_estimation.h>
-// #include "GrahamScan.h"
+
+//#include <unordered_set>
 
 using namespace std;
 using namespace pcl;
 
-// ros::Publisher pub_group;
 
-const double neboANDsideDistanceThreshold[] = {
-        0.80,0.80,0.81,0.83,0.85,//5
-        0.87,0.90,0.93,0.97,0.91,//5
-        0.98,0.94,0.94,0.96,0.92,//5
-        1.00,1.00,1.00,1.00,1.00,1.00,1.00
-        ,1.00
-        ,1.00
-        ,1.00
-        ,1.00
-        ,1.00
-        ,1.00
-        ,1.00
-        ,1.00
-        ,1.00
-        ,1.00
-};
-
-
-//template < typename T>
-//vector< size_t>  sort_indexes(const vector< T>  & v) {
-//
-//    // initialize original index locations
-//    vector< size_t>  idx(v.size());
-//    for (size_t i = 0; i != idx.size(); ++i) idx[i] = i;
-//
-//    // sort indexes based on comparing values in v
-//    sort(idx.begin(), idx.end(),
-//         [& v](size_t i1, size_t i2) {return v[i1] <  v[i2];});
-//
-//    return idx;
+//float squareDistance(PointProp a,PointProp b){
+//    return sqrt((a.x-b.x)*(a.x-b.x)+(a.y-b.y)*(a.y-b.y));
 //}
-//CObstaclePair::CObstaclePair()
-//{
-//
-//}
-CObstaclePair::~CObstaclePair()
-{
 
+ObsCluster::ObsCluster(const pcl::PointCloud<pcl::PointXYZI> &obs_points,
+const CurbDetection &curbDetection)
+:_point_ori(obs_points),
+_curb_detection(curbDetection){
+
+    if(_curb_detection.line_para_r_.pt_num==0){
+        _curb_detection.line_para_r_.b_=20;
+    }
+    if(_curb_detection.line_para_l_.pt_num==0){
+        _curb_detection.line_para_r_.b_=-20;
+    }
+    //对障碍物点建立KD树索引
+    _kdtree.setInputCloud(obs_points.makeShared());
+
+    //建立点属性列表,初始化每个点的属性
+    for(int i=0;i<obs_points.size();i++){
+        PointProp temp_pt;
+        temp_pt.idx=i;
+        temp_pt.pointType=noise;
+        _point_prop_vec.push_back(temp_pt);
+    }
 }
 
-// bool CObstaclePair::if_point_within_curb(pcl::PointXYZI pt){
-//     float x1=pt.y*m_line_para[0]+m_line_para[1]+2.0f;
-//     float x2=pt.y*m_line_para[2]+m_line_para[3]-2.0f;
-//     return (pt.x-x1)*(pt.x-x2)<0;
-// }
+bool ObsCluster::if_point_within_curb(pcl::PointXYZI pt) {
+    float x1=pt.y*_curb_detection.line_para_l_.k_+_curb_detection.line_para_l_.b_-1.0f;
+    float x2=pt.y*_curb_detection.line_para_r_.k_+_curb_detection.line_para_r_.b_+1.0f;
+    return (pt.x-x1)*(pt.x-x2)<0;
+}
 
-CObstaclePair::CObstaclePair(pcl::PointCloud<pcl::PointXYZI>::ConstPtr ori_xyz
-        , pcl::PointCloud<pcl::PointSrc>::ConstPtr ori_scr)
-//                             const CurbDetection& curbDetection)
-//:m_curb(curbDetection)
-:m_obs_cloud(new pcl::PointCloud<pcl::PointXYZI>)
-{
+vector<int> ObsCluster::getNeighbors(int search_idx,float Eps) {
 
-    //initialize
-    m_ori_src = ori_scr;
-    m_ori_xyz = ori_xyz;
-    num_sweep=m_ori_xyz->size()/32;
+    PointXYZI temp_pt=_point_ori[search_idx];
 
-//    m_curb=curbDetection;
+    vector<int> pointIdxRadiusSearch;
+    vector<float> pointRadiusSquaredDistance;
 
-    // pcl::PointCloud<pcl::PointXYZI>::Ptr laserPointCloud[32];
-    // pcl::PointCloud<PointSrc>::Ptr laserPointCloud_scr[32];
-    std::vector<std::vector<std::pair<unsigned, unsigned > > > Start_sidePairFeature(32);
-    std::vector<std::vector<std::pair<unsigned, unsigned> > > End_sidePairFeature(32);
+    _kdtree.radiusSearch(temp_pt, Eps, pointIdxRadiusSearch, pointRadiusSquaredDistance);
 
-    // //1.split 32 lines
-    // for(unsigned ibeam_count = 0 ; ibeam_count < 32 ; ibeam_count++)
-    // {
-    //     pcl::PointCloud<pcl::PointXYZI>::Ptr beam_laserPointCloud(new pcl::PointCloud<pcl::PointXYZI>);
-    //     pcl::PointCloud<PointSrc>::Ptr beam_laserPointCloud_scr(new pcl::PointCloud<PointSrc>);
-    //     for(unsigned jface_count = 0 ; jface_count < num_sweep ; jface_count++)
-    //     {
-    //         beam_laserPointCloud->points.push_back(ori_xyz->points[get_idx(ibeam_count,jface_count)]);
-    //         beam_laserPointCloud_scr->points.push_back(ori_scr->points[get_idx(ibeam_count,jface_count)]);
-    //     }
-    //     laserPointCloud[ibeam_count] = beam_laserPointCloud;
-    //     laserPointCloud_scr[ibeam_count] = beam_laserPointCloud_scr;
-    // }
+    //因为每次第一个点都是搜索点本身,去掉这个点
+    pointIdxRadiusSearch.erase(pointIdxRadiusSearch.begin());
 
+    return pointIdxRadiusSearch;
+}
 
-    //2.pair feature extraction
-    ///2.1 feature judgment
-    for(unsigned ibeam_count = 0 ; ibeam_count < 23 ; ibeam_count++ )
-    {
-        //2.1.1 find side and nebo
-        vector<float> diffArray(num_sweep);
-        vector<bool> isSideFlagList(num_sweep);
-        vector<bool> isNeboFlagList(num_sweep);
+void ObsCluster::DBSCAN(float Eps,int MinPts){
 
-        int neboHood = 15;
-        //neighbor judgment
-        for(unsigned i = 0 ; i < num_sweep ; i++)
-        {
-            float depth0 = m_ori_src->points[get_idx(ibeam_count,i)].radius;
-            float depth1 = depth0;
-            unsigned j = 0;
-            if(depth0 < 1.5*500)
-            {
+    for(int i=0;i<_point_ori.size();i++){
+
+        if(_point_prop_vec[i].visited)
+            continue;
+
+        if(!if_point_within_curb(_point_ori[i]))
+            continue;
+
+        _point_prop_vec[i].visited=true;//将该点作为种子点,标记为已访问
+
+        vector<int> neighbors=getNeighbors(i,Eps);
+
+        _point_prop_vec[i].neighbor_pts_count=neighbors.size();
+
+        if(neighbors.size()<MinPts+1){
+            continue;
+        }
+        else{
+            _point_prop_vec[i].pointType=core;
+            expandCluster(i, neighbors, Eps, MinPts);//加入到新簇
+        }
+    }
+}
+
+void ObsCluster::expandCluster(int sp_idx,const vector<int>& search_cluster, float Eps, int MinPts) {
+
+    GroupProp temp_group;
+    temp_group._pts_inside_idx.push_back(sp_idx);
+
+    //建立栈,初始化加入刚开始的几个聚类点
+    stack<int> st_cluster;
+    for(auto idx:search_cluster){
+        st_cluster.push(idx);
+        _point_prop_vec[idx].visited=true;
+        temp_group._pts_inside_idx.push_back(idx);
+    }
+
+    while(!st_cluster.empty()){
+
+        int pt_idx=st_cluster.top();
+        st_cluster.pop();
+
+        vector<int> neiPts_vec=getNeighbors(pt_idx,Eps);
+        int neigh_size=neiPts_vec.size();
+        _point_prop_vec[pt_idx].neighbor_pts_count=neigh_size;
+        if(neigh_size>=MinPts+1)
+            _point_prop_vec[pt_idx].pointType=core;
+        else
+            _point_prop_vec[pt_idx].pointType=border;
+
+        for(auto tmp_idx:neiPts_vec) {
+
+            if (_point_prop_vec[tmp_idx].visited) {
                 continue;
             }
-            else
-            {
-                //ignore radius = 0.00 or radius < threshold
-                for(unsigned m = 1 ; m < neboHood ; m++)
-                {
-                    unsigned mcount1 = i + m;
-                    if(mcount1 >= 0 && mcount1 < num_sweep)
-                    {
-                        depth1 = m_ori_src->points[get_idx(ibeam_count,mcount1)].radius;
-                        if(depth1 > 1.5*500)
-                        {
-                            j = mcount1;
-                            break;
-                        }
-                    }
-                }
-                //
-                if(depth1 > 1.5*500 && fabs(depth0 - depth1) > neboANDsideDistanceThreshold[ibeam_count] * 0.35*500&&
-                    fabs(i-j)>5/*THRE_NEBODISMAX*/ )
-                {
-                    if(depth0 < depth1)
-                    {
-                        isSideFlagList[i] = true;
-                        isNeboFlagList[j] = true;
-                    }
-                    else
-                    {
-                        isNeboFlagList[i] = true;
-                        isSideFlagList[j] = true;
-                        //featureCloud[icount * m_numFace + i].obsNebo = true;
-                        //featureCloud[icount * m_numFace + j].obsSide = true;
-                    }
-                    //featureCloud[icount * m_numFace + j].obsNeboDis = (int)(depth1 - depth0) + 100;
-                    //featureCloud[icount * m_numFace + i].obsNeboDis = (int)(depth0 - depth1) + 100;
-                }
-            }
-        }
 
-        //2.1.2 make side pair
-        std::vector<std::pair<unsigned,unsigned> > start_sidelist;
-        std::vector<std::pair<unsigned,unsigned> > end_sidelist;
+            st_cluster.push(tmp_idx);
+            _point_prop_vec[tmp_idx].visited = true;
+            temp_group._pts_inside_idx.push_back(tmp_idx);
 
-        for(unsigned i_index = 0 ; i_index < num_sweep ; i_index++)
-        {
-            unsigned j_index = i_index;
-
-            std::pair<unsigned,unsigned> startside;
-            std::pair<unsigned,unsigned> endside;
-            startside.first = ibeam_count;
-            endside.first = ibeam_count;
-
-            if(isSideFlagList[i_index])
-            {
-                for(unsigned j = 1 ; j < 1500 && (j+i_index) < num_sweep ; j++)
-                {
-                    j_index = i_index + j;
-                    if(isNeboFlagList[j_index])
-                    {
-                        break;
-                    }
-                    else if(isSideFlagList[j_index])
-                    {
-                        startside.second = i_index;
-                        endside.second = j_index;
-                        pcl::PointXYZI startpt = m_ori_xyz->points[get_idx(ibeam_count,i_index)];
-                        pcl::PointXYZI endpt = m_ori_xyz->points[get_idx(ibeam_count,j_index)];
-
-                        double distance_2 = pow((startpt.x - endpt.x), 2) + pow((startpt.y - endpt.y), 2);
-                        //distance between start and end can not be too long
-                        //points between start and end can not be too few
-                        if(distance_2 < 36.00 && endside.second - startside.second > 3)
-                        {
-                            start_sidelist.push_back(startside);
-                            end_sidelist.push_back(endside);
-                        }
-                        break;
-                    }
-                }
-                i_index = j_index;
-            }
-        }
-        Start_sidePairFeature[ibeam_count] = start_sidelist;
-        End_sidePairFeature[ibeam_count] = end_sidelist;
-    }
-
-
-    FeaturePair_Grouping(Start_sidePairFeature,End_sidePairFeature);
-}
-
-void CObstaclePair::FeaturePair_Grouping(std::vector<std::vector<std::pair<unsigned, unsigned> > > Start_sidePairFeature,
-                                         std::vector<std::vector<std::pair<unsigned, unsigned> > > End_sidePairFeature) {
-    //inputData
-    //std::vector<std::pair<unsigned, unsigned>> Start_sidePairFeature[32];
-    //std::vector<std::pair<unsigned, unsigned>> End_sidePairFeature[32];
-
-
-    //resData
-    std::vector<Tracking_group> groupList(0);
-    std::vector<Tracking_group> groupList_swap(0);
-
-    ////1.group similar segments into a group
-    //traverse segment
-    for (unsigned ibeam = 0; ibeam < 32; ibeam++) {
-        if (Start_sidePairFeature[ibeam].size() == 0)
-            continue;
-
-        for (unsigned jface = 0; jface < Start_sidePairFeature[ibeam].size(); jface++) {
-            bool findGroup = false;
-            for (unsigned kgroup = 0; kgroup < groupList.size(); kgroup++) {
-                //similarities calculation
-                trackingGroupMemb groupMembNew;
-                groupMembNew.start_index = Start_sidePairFeature[ibeam][jface];
-                groupMembNew.end_index = End_sidePairFeature[ibeam][jface];
-                trackingGroupMemb groupCur = groupList[kgroup].Gmember[groupList[kgroup].Gmember.size() - 1];
-
-                if (groupCur.start_index.first == groupMembNew.start_index.first)
-                    continue;
-
-                int curCode_s = get_idx( groupCur.start_index.first,groupCur.start_index.second);
-                int curCode_e = get_idx( groupCur.end_index.first,groupCur.end_index.second);
-                int newCode_s = get_idx( groupMembNew.start_index.first,groupMembNew.start_index.second);
-                int newCode_e = get_idx( groupMembNew.end_index.first,groupMembNew.end_index.second);
-                double delt_distance = abs(m_ori_src->points[curCode_s].radius - m_ori_src->points[newCode_s].radius)
-                                       + abs(m_ori_src->points[curCode_e].radius - m_ori_src->points[newCode_e].radius);
-                double delt_angstart = abs(m_ori_src->points[curCode_s].angle - m_ori_src->points[newCode_s].angle);
-                double delt_angend = abs(m_ori_src->points[curCode_e].angle - m_ori_src->points[newCode_e].angle);
-                double max_sang = max(m_ori_src->points[curCode_s].angle, m_ori_src->points[newCode_s].angle);
-                double min_eang = min(m_ori_src->points[curCode_e].angle, m_ori_src->points[newCode_e].angle);
-
-
-                //push back a segment to a existed group
-                if (delt_distance < 500.0 && (delt_angstart < 500.0 || delt_angend < 500.0 || (min_eang - max_sang) > 0)) {
-                    groupList[kgroup].Gmember.push_back(groupMembNew);
-                    findGroup = true;
-                    break;
-                }
-            }
-            if (!findGroup) {
-                //creat a new group with a segment
-                Tracking_group groupNew;
-                trackingGroupMemb groupMembNew;
-                groupMembNew.start_index = Start_sidePairFeature[ibeam][jface];
-                groupMembNew.end_index = End_sidePairFeature[ibeam][jface];
-
-                if ((groupMembNew.end_index.second - groupMembNew.start_index.second) < 5 &&
-                    groupMembNew.end_index.first < 18)
-                    continue;
-
-                groupNew.Gmember.push_back(groupMembNew);
-                groupList.push_back(groupNew);
-            }
         }
     }
 
-    ////2.calculate properties of groups
-    vector<Tracking_group> group_swap(0);
-    for (unsigned igroup = 0; igroup < groupList.size(); igroup++) {
-        if(GroupPropertiesCal(groupList[igroup])){
-            *m_obs_cloud+=*groupList[igroup].Gproperties.cloudInside;
-            // if (if_point_within_curb(groupList[igroup].Gproperties.center))
-            // {
-                group_swap.push_back(groupList[igroup]);
-            // }
-        }
-    }
-    groupList.swap(group_swap);
-
-    ////2.merge group
-//    evaluate properties
-    bool ifMerge = false;
-    for (unsigned icount = 0; icount < 5 && (ifMerge || icount == 0); icount++)
-        ifMerge = GroupMerge(groupList);
-//    GroupMerge_xhd(groupList);
-
-
-    ////3.filter group List
-    groupList_swap.resize(0);
-//    ros::Rate r(1);
-    for (unsigned igroup = 0; igroup < groupList.size(); igroup++) {
-        //
-        if (groupList[igroup].Gmember.size() < 2)
-            continue;
-
-//        float width = 4.0;
-//        if (abs(groupList[igroup].Gproperties.center.x) > width)
-//            continue;
-
-        groupList_swap.push_back(groupList[igroup]);
-        //group_properities_swap.push_back(group_properities_swap[igroup]);
-
-    }
-    groupList.swap(groupList_swap);
-
-    //cout << "group size is " << groupList.size() << endl;
-
-
-    m_groupList_res = groupList;
+    _group_vec.push_back(temp_group);
 
 }
 
-pcl::PointCloud<pcl::PointXYZI>::Ptr CObstaclePair::GroupPointCloudColl(Tracking_group group) {
-
-    pcl::PointCloud<pcl::PointXYZI>::Ptr Agroup_cloud(new pcl::PointCloud<pcl::PointXYZI>);
-    //collect all points belong to a group
-    for (unsigned jmemb = 0; jmemb < group.Gmember.size(); jmemb++) {
-        int count = group.Gmember[jmemb].end_index.second - group.Gmember[jmemb].start_index.second;
-        for (unsigned kindex = 0; kindex <= count; kindex++) {
-            int ptIndex = get_idx(group.Gmember[jmemb].start_index.first,
-                    group.Gmember[jmemb].start_index.second + kindex);
-
-            if (m_ori_src->points[ptIndex].radius > 1.0) {
-//                if (if_point_within_curb(m_ori_xyz->points[ptIndex])) {
-                    Agroup_cloud->push_back(m_ori_xyz->points[ptIndex]);
-//                }
-            }
+void ObsCluster::calGroupProp() {
+    for(int i=0;i<_group_vec.size();i++){
+        GroupProp &group=_group_vec[i];
+        float cx=0,cy=0,cz=0;
+        float min_x=_point_ori[group._pts_inside_idx[0]].x;
+        float max_x=min_x;
+        float min_y=_point_ori[group._pts_inside_idx[0]].y;
+        float max_y=min_y;
+        float min_z=_point_ori[group._pts_inside_idx[0]].z;
+        float max_z=min_z;
+        group._pt_num=group._pts_inside_idx.size();
+        for(auto idx:group._pts_inside_idx){
+            PointXYZI pt=_point_ori[idx];
+            pt.intensity=(i+1)*10;//给同一簇的点赋同一个强度
+            cx+=pt.x;
+            cy+=pt.y;
+            cz+=pt.z;
+            if(min_x>pt.x) min_x=pt.x;
+            if(max_x<pt.x) max_x=pt.x;
+            if(min_y>pt.y) min_y=pt.y;
+            if(max_y<pt.y) max_y=pt.y;
+            if(min_z>pt.z) min_z=pt.z;
+            if(max_z<pt.z) max_z=pt.z;
+            group._pts_inside.push_back(pt);
         }
+        group._center.x=cx/group._pt_num;
+        group._center.y=cy/group._pt_num;
+        group._center.z=cz/group._pt_num;
+        group._pt_min.x=min_x;
+        group._pt_min.y=min_y;
+        group._pt_min.z=min_z;
+        group._pt_max.x=max_x;
+        group._pt_max.y=max_y;
+        group._pt_max.z=max_z;
+        group._width_x=max_x-min_x;
+        group._length_y=max_y-min_y;
+        group._height_z=max_z-min_z;
+        group._radius=(group._width_x+group._length_y)/2.f;
     }
-    return Agroup_cloud;
-}
-
-pcl::PointCloud<pcl::PointXYZI>::Ptr
-CObstaclePair::get_group_box(pcl::PointCloud<pcl::PointXYZI>::Ptr group_points) {
-    int num = group_points->size();
-    pcl::PointXYZI l_pt,d_pt,r_pt,t_pt;
-    float left=100;
-    float right=-100;
-    float top=-100;
-    float down=100;
-    //int l_idx,r_idx,t_idx,d_idx;
-    for (int i = 0; i < num; i++) {
-        pcl::PointXYZI tmp=group_points->points[i];
-        if(left>tmp.x){
-            left=tmp.x;
-            //l_idx=i;
-            l_pt=tmp;
-        }
-        if(right<tmp.x){
-            right=tmp.x;
-            //r_idx=i;
-            r_pt=tmp;
-        }
-        if(top<tmp.y){
-            top=tmp.y;
-            //t_idx=i;
-            t_pt=tmp;
-        }
-        if(down>tmp.y){
-            down=tmp.y;
-            //d_idx=i;
-            d_pt=tmp;
-        }
-
-    }
-    pcl::PointCloud<pcl::PointXYZI>::Ptr box=get_line(l_pt,t_pt);
-    *box+=*(get_line(t_pt,r_pt));
-    *box+=*(get_line(r_pt,d_pt));
-    *box+=*(get_line(d_pt,l_pt));
-
-    return box;
-}
-
-bool dis_compare(const pair<int,double>& a,const pair<int,double>& b) {
-    return a.second>b.second;
 }
 
 
-bool CObstaclePair::GroupPropertiesCal(Tracking_group &group) {
-    pcl::PointCloud<pcl::PointXYZI>::Ptr pointsIn(GroupPointCloudColl(group));
-    group.Gproperties.cloudInside = pointsIn;
 
-    if (pointsIn->empty())
-        return false;
+void ObsCluster::cluster() {
 
-    //
-    float cx = 0.0, cy = 0.0, cz = 0.0, radius = 0.0;
-    float xMin = pointsIn->points[0].x, xMax = xMin, yMin = pointsIn->points[0].y, yMax = yMin;
-    float zMin = pointsIn->points[0].z, zMax = zMin;
-
-    for (unsigned ipoint = 0; ipoint < pointsIn->points.size(); ipoint++) {
-        float x = pointsIn->points[ipoint].x;
-        float y = pointsIn->points[ipoint].y;
-        float z = pointsIn->points[ipoint].z;
-
-        if (abs(x) < 1.5 && abs(y) < 1.5)
-            continue;
-
-        xMin = x < xMin ? x : xMin;
-        xMax = x > xMax ? x : xMax;
-        yMin = y < yMin ? y : yMin;
-        yMax = y > yMax ? y : yMax;
-        zMin = z < zMin ? z : zMin;
-        zMax = z > zMax ? z : zMax;
-
-        cx += x;
-        cy += y;
-        cz += z;
-    }
-    cx /= pointsIn->points.size();
-    cy /= pointsIn->points.size();
-    cz /= pointsIn->points.size();
-
-//    vector<double> dis_vec;
-//    for(int i=0;i<pointsIn->points.size();i++){
-//        double dis=sqrt(pow(pointsIn->points[i].x-cx,2)+pow(pointsIn->points[i].y-cy,2));
-//        dis_vec.push_back(dis);
-//    }
-    vector<pair<int, double> > dis_map;
-    for (int i = 0; i < pointsIn->points.size(); i++) {
-        double dis = sqrt(pow(pointsIn->points[i].x - cx, 2) + pow(pointsIn->points[i].y - cy, 2));
-        dis_map.push_back(pair<int,double>(i,dis));
-    }
-
-//    vector<size_t> idx_vec=sort_indexes<double>(dis_vec);
-    sort(dis_map.begin(), dis_map.end(),dis_compare);
-    vector<pair<int, double> >::iterator iter = dis_map.begin();
-
-    double dis_threshold = iter->second * 0.9;
-
-//    vector<int> int_idx;
-    for (; iter != dis_map.end(); iter++) {
-
-        group.Gproperties.cloudInside->erase(group.Gproperties.cloudInside->begin() + iter->first);
-
-        if (iter->second < dis_threshold)
-            break;
-    }
-//    cx = (xMax + xMin) / 2.0f;
-//    cy = (yMax + yMin) / 2.0f;
-//    cz = (zMax + zMin) / 2.0f;
-    if ((xMax - xMin) > (yMax - yMin)) {
-        radius = (xMax - xMin) / 2.0f;
-    } else {
-        radius = (yMax - yMin) / 2.0f;
-    }
-
-    if (radius < 0.5) {
-        radius = 0.5;
-    }
-
-    group.Gproperties.center.x = cx;
-    group.Gproperties.center.y = cy;
-    group.Gproperties.center.z = cz;
-    group.Gproperties.radius = radius;
-    group.Gproperties.width_x = xMax - xMin;
-    group.Gproperties.length_y = yMax - yMin;
-    group.Gproperties.height_z = zMax - zMin;
-    group.Gproperties.density = 1.0 * pointsIn->size() / radius;
-    stringstream nsk;
-    nsk << "ns" << rand();
-    group.Gproperties.id = nsk.str();
-
-    return true;
+    DBSCAN(1,4);
+    calGroupProp();
 
 }
 
-bool CObstaclePair::GroupMerge(std::vector<Tracking_group> &groupList) {
-    bool ifMergeAgroup = false;
 
-    std::vector<Tracking_group> groupList_swap(0);
-    for (unsigned igroup = 0; igroup < groupList.size(); igroup++) {
-        GroupPropertiesCal(groupList[igroup]);
-    }
-    for (unsigned igroup = 0; igroup < groupList.size(); igroup++) {
-        bool findGroup = false;
-        for (unsigned jgroup = 0; jgroup < groupList_swap.size(); jgroup++) {
-            //calculate overlap of two groups
-            float disAB, deltradiusAB_max;
-            disAB = sqrt(pow(groupList[igroup].Gproperties.center.x - groupList[jgroup].Gproperties.center.x, 2)
-                         + pow(groupList[igroup].Gproperties.center.y - groupList[jgroup].Gproperties.center.y, 2));
-//            deltradiusAB_max = max(groupList[igroup].Gproperties.radius, groupList[jgroup].Gproperties.radius);
-            deltradiusAB_max = max(groupList[igroup].Gproperties.radius, groupList[jgroup].Gproperties.radius);
-//            float delt_raduisAB_min=min(groupList[igroup].Gproperties.radius, groupList[jgroup].Gproperties.radius);
-            if (deltradiusAB_max - disAB > -1.0 && groupList[igroup].Gproperties.density > 10 &&
-                groupList[jgroup].Gproperties.density > 10)
-//            if(deltradiusAB_max>disAB)
-            {
-                //calculate radius acce
-                Tracking_group tryMerged_group;
-                for (unsigned kmemb = 0; kmemb < groupList[igroup].Gmember.size(); kmemb++) {
-                    tryMerged_group.Gmember.push_back(groupList[igroup].Gmember[kmemb]);
-                }
-                for (unsigned kmemb = 0; kmemb < groupList_swap[jgroup].Gmember.size(); kmemb++) {
-                    tryMerged_group.Gmember.push_back(groupList_swap[jgroup].Gmember[kmemb]);
-                }
-                GroupPropertiesCal(tryMerged_group);
-                float radius_acce = (tryMerged_group.Gproperties.radius - deltradiusAB_max) / deltradiusAB_max;
+//------------------tracking---------------------//
 
-                if (radius_acce < 0.2) {
-//                    //merge two groups into one
-                    groupList_swap[jgroup] = tryMerged_group;
-                    findGroup = true;
-                    ifMergeAgroup = true;
-                    break;
-                }
-            }
-        }
-        if (!findGroup) {
-            groupList_swap.push_back(groupList[igroup]);
-        }
-    }
-    groupList.swap(groupList_swap);
-
-    return ifMergeAgroup;
-}
-
-pcl::PointCloud<pcl::PointXYZI>::Ptr CObstaclePair::get_line(pcl::PointXYZI p1, pcl::PointXYZI p2) {
-    pcl::PointCloud<pcl::PointXYZI>::Ptr tmp_ptr(new pcl::PointCloud<pcl::PointXYZI>);
-    float width=(p2.x-p1.x);
-    float height=(p2.y-p1.y);
-    int num=20;
-    float step_x=width/num;
-    float step_y=height/num;
-    for(int i=0;i<num;i++)
-    {
-        pcl::PointXYZI tmp;
-        tmp.x=p1.x+step_x*i;
-        tmp.y=p1.y+step_y*i;
-        tmp_ptr->push_back(tmp);
-    }
-    return tmp_ptr;
-}
-
-pcl::PointCloud<pcl::PointXYZI>::Ptr CObstaclePair::get_lines(pcl::PointCloud<pcl::PointXYZI>::Ptr convex_hull_pts) {
-    int nums=convex_hull_pts->size();
-    pcl::PointCloud<pcl::PointXYZI>::Ptr output(new pcl::PointCloud<pcl::PointXYZI>);
-    if(nums==4) {
-        for (int i = 0; i < nums - 1; i++) {
-            *output += *(get_line(convex_hull_pts->points[i], convex_hull_pts->points[i + 1]));
-        }
-        *output += *(get_line(convex_hull_pts->points[nums - 1], convex_hull_pts->points[0]));
-    }
-    else if(nums==8){
-        for (int i = 0; i < 3; i++) {
-            *output += *(get_line(convex_hull_pts->points[i], convex_hull_pts->points[i + 1]));
-        }
-        *output += *(get_line(convex_hull_pts->points[3], convex_hull_pts->points[0]));
-        for (int i = 4; i < 7; i++) {
-            *output += *(get_line(convex_hull_pts->points[i], convex_hull_pts->points[i + 1]));
-        }
-        *output += *(get_line(convex_hull_pts->points[7], convex_hull_pts->points[4]));
-        for (int i = 0; i < 4; i++) {
-            *output += *(get_line(convex_hull_pts->points[i], convex_hull_pts->points[i + 4]));
-        }
-    }
-    return output;
-}
-
-bool CObstaclePair::GroupMerge_xhd(std::vector<Tracking_group> &groupList) {
-    bool if_merge_group=false;
-
-    std::vector<Tracking_group> group_merged;
-    while (if_merge_group){
-        for(int i=0;i<groupList.size();i++) {
-            Tracking_group tmp_group=groupList[i];
-            for(int j=0;j<group_merged.size();j++){
-                //calculate overlap of two groups
-                float disAB, deltradiusAB;
-                disAB = sqrt(pow(tmp_group.Gproperties.center.x - groupList[j].Gproperties.center.x,2)
-                             + pow(tmp_group.Gproperties.center.y - groupList[j].Gproperties.center.y,2));
-//            deltradiusAB = max(groupList[igroup].Gproperties.radius, groupList[jgroup].Gproperties.radius);
-                deltradiusAB = min(tmp_group.Gproperties.radius, groupList[j].Gproperties.radius);
-                if(deltradiusAB - disAB > -0.0 /*&& groupList[igroup].Gproperties.density > 10 && groupList[jgroup].Gproperties.density > 10*/) {
-                    //calculate radius acce
-                    Tracking_group tryMerged_group;
-                    for (unsigned kmemb = 0; kmemb < tmp_group.Gmember.size(); kmemb++) {
-                        tryMerged_group.Gmember.push_back(tmp_group.Gmember[kmemb]);
-                    }
-                    for (unsigned kmemb = 0; kmemb < group_merged[j].Gmember.size(); kmemb++) {
-                        tryMerged_group.Gmember.push_back(group_merged[j].Gmember[kmemb]);
-                    }
-                    GroupPropertiesCal(tryMerged_group);
-
-                    group_merged.push_back(tryMerged_group);
-                }
-
-
-            }
-        }
-    }
-    groupList.swap(group_merged);
-}
-
-//grouping end
-//------------------------------------------------------------------------------------------------------------------//
-//tracking
-
-float figureSimiCalculation(Tracker tracker, Tracking_group figure)
+float figureSimiCalculation(Tracker tracker, GroupProp figure)
 {
     float simi = 0.0;
     float geoSimi = 0.0;
     int posSimi = 0;
 
     //Position Similarity -- integral part
-    float distance = sqrt(pow(tracker.PropertiesKF.center.x - figure.Gproperties.center.x,2)
-                          + pow(tracker.PropertiesKF.center.y - figure.Gproperties.center.y,2));
+    double distance = sqrt(pow(tracker.PropertiesKF._center.x - figure._center.x,2)
+                          + pow(tracker.PropertiesKF._center.y - figure._center.y,2));
     if(distance > 8.0)
-        posSimi = 0.0;
+        posSimi = 0;
     else
-        posSimi = (int)((8.0 - distance) * 10.0 / 8.0 + 0.5);//waiting test
+        posSimi = round((8.0 - distance) * 10.0 / 8.0);//waiting test
 
     //Geometry Similarity -- decimal part
-    float biggerRadius = max(tracker.PropertiesKF.radius, figure.Gproperties.radius);
-    geoSimi = (biggerRadius -abs(tracker.PropertiesKF.radius - figure.Gproperties.radius)) / biggerRadius;
+    float biggerRadius = max(tracker.PropertiesKF._radius, figure._radius);
+    geoSimi = (biggerRadius -abs(tracker.PropertiesKF._radius - figure._radius)) / biggerRadius;
 
     //
     simi = posSimi + geoSimi;
@@ -623,95 +204,21 @@ float figureSimiCalculation(Tracker tracker, Tracking_group figure)
     return simi;
 }
 
-void Tracker::create_WithNewMember(trackingGroupProp &figure)
-{
-    for(unsigned i = 0 ; i < FIGURE_RESERVE ; i++)
-    {
-        FiguresPro[i] = figure;
-    }
-    PropertiesKF = figure;
-
-    ////KF
-    //KF.inputMeasurement_first(figure.center.x, figure.center.y);
-    //KF.outputCorrection(PropertiesKF.center.x, PropertiesKF.center.y);
-    countMeb_total = 1;
-
-}
-
-void Tracker::update_WithNewMember(trackingGroupProp &figure)
-{
-    for(unsigned i = FIGURE_RESERVE - 1 ; i > 0 ; i--)
-    {
-        FiguresPro[i] = FiguresPro[i - 1];
-    }
-    FiguresPro[0] = figure;
-    PropertiesKF.radius = figure.radius;
-
-    //KF
-    if(countMeb_total == 1)
-    {
-        KF.inputMeasurement_first(figure.center.x, figure.center.y, figure.center.x - FiguresPro[1].center.x, figure.center.y - FiguresPro[1].center.y);
-        PropertiesKF = figure;
-    }
-    else
-    {
-        KF.inputMeasurement(figure.center.x, figure.center.y);
-        KF.outputCorrection(PropertiesKF.center.x, PropertiesKF.center.y);
-    }
-    countMeb_total ++;
-
-    //update length,width and height
-    PropertiesKF.width_x=(FiguresPro[0].width_x+FiguresPro[1].width_x*(countMeb_total-1))/countMeb_total;
-    PropertiesKF.length_y=(FiguresPro[0].length_y+FiguresPro[1].length_y*(countMeb_total-1))/countMeb_total;
-    PropertiesKF.height_z=(FiguresPro[0].height_z+FiguresPro[1].height_z*(countMeb_total-1))/countMeb_total;
-}
-
-void Tracker::update_WithNoMember()
-{
-    KF.inputMeasurement(PropertiesKF.center.x, PropertiesKF.center.y);
-    KF.outputCorrection(PropertiesKF.center.x, PropertiesKF.center.y);
-}
-
-long Tracker::getLastFnumber()
-{
-    return FiguresPro[0].Fnumber;
-}
-
-CTrackersCenter::CTrackersCenter()
-{
-    trackerIDCount = 0;
-}
-
-CTrackersCenter::~CTrackersCenter()
-{
-
-}
-
-long CTrackersCenter::getNewobjID()
-{
-    trackerIDCount++;
-    if (trackerIDCount > 50)
-    {
-        trackerIDCount = 0;
-    }
-    return trackerIDCount;
-}
-
-void CTrackersCenter::inputSingFrameFigures(std::vector<Tracking_group> figureList, long frameID,double cur_time)
+void CTrackersCenter::inputSingFrameFigures(std::vector<GroupProp> figureList, int frameID,double cur_time)
 {
     ////0.figureList initialize
-    for(unsigned i = 0 ; i < figureList.size() ; i++)
+    for(auto &figure:figureList)
     {
-        figureList[i].Gproperties.Fnumber = frameID;
+        figure.id = frameID;
     }
     ////0.trackerList initialize
-    if(TrackerList.size() == 0)
+    if(TrackerList.empty())
     {
         //waiting
-        for(unsigned i = 0 ; i < figureList.size() ; i++)
+        for(auto &figure:figureList)
         {
-            Tracker trackerNewOne(getNewobjID());
-            trackerNewOne.create_WithNewMember(figureList[i].Gproperties);
+            Tracker trackerNewOne(getNewObjID());
+            trackerNewOne.create_WithNewMember(figure);
             TrackerList.push_back(trackerNewOne);
             time_=cur_time;
         }
@@ -725,10 +232,9 @@ void CTrackersCenter::inputSingFrameFigures(std::vector<Tracking_group> figureLi
     figureBelong.resize(numFigure,-1);
     std::vector<int> trackerStatus(numTracker,-1);//fill in code of figure the tracker taking |-1 = missing
     std::vector<int> trackerStatus_new(0);//fill in code of figure the tracker taking |-1 = missing
-    if(figureList.size() != 0)
-    {
 
-        //1.1simi calculation
+    if(!figureList.empty()) {
+        //1.1 similarity calculation
         Eigen::MatrixXd Matsimi = Eigen::MatrixXd::Zero(numTracker, numFigure);
         for(unsigned itracker = 0 ; itracker < TrackerList.size() ; itracker++)
         {
@@ -790,10 +296,10 @@ void CTrackersCenter::inputSingFrameFigures(std::vector<Tracking_group> figureLi
                 continue;
 
             double time_span=cur_time-time_;
-            trackingGroupProp track_one=TrackerList[i].PropertiesKF;
-            trackingGroupProp figure_one=figureList[trackerStatus[i]].Gproperties;
-            double dis_x=figure_one.center.x-track_one.center.x;
-            double dis_y=figure_one.center.y-track_one.center.y;
+            GroupProp track_one=TrackerList[i].PropertiesKF;
+            GroupProp figure_one=figureList[trackerStatus[i]];
+            double dis_x=figure_one._center.x-track_one._center.x;
+            double dis_y=figure_one._center.y-track_one._center.y;
             TrackerList[i].velocity_x=dis_x/time_span;
             TrackerList[i].velocity_y=dis_y/time_span;
         }
@@ -807,7 +313,7 @@ void CTrackersCenter::inputSingFrameFigures(std::vector<Tracking_group> figureLi
     {
         if(figureBelong[ifigure] == -1)
         {
-            Tracker newOne(getNewobjID());
+            Tracker newOne(getNewObjID());
             TrackerList.push_back(newOne);
             trackerStatus_new.push_back(ifigure);
         }
@@ -826,12 +332,12 @@ void CTrackersCenter::inputSingFrameFigures(std::vector<Tracking_group> figureLi
             } else if (figureBelong[trackerStatus_new[i]] == -1) {
                 int idx=trackerStatus_new[i];
                 if(idx>=figureList.size()) continue;
-                TrackerList[i].create_WithNewMember(figureList[idx].Gproperties);
+                TrackerList[i].create_WithNewMember(figureList[idx]);
             } else {
                 int idx=trackerStatus_new[i];
                 if(idx>=figureList.size())
                     continue;
-                TrackerList[i].update_WithNewMember(figureList[idx].Gproperties);
+                TrackerList[i].update_WithNewMember(figureList[idx]);
             }
 
         }
@@ -839,21 +345,95 @@ void CTrackersCenter::inputSingFrameFigures(std::vector<Tracking_group> figureLi
 
     //delete missing tracker
     TrackerList_swap.resize(0);
-    for(unsigned i = 0 ; i < TrackerList.size() ; i++)
+    for(auto track:TrackerList)
     {
-        if(frameID - TrackerList[i].getLastFnumber() <= 5)
-        {
-            for(auto &one : *(TrackerList[i].FiguresPro[0].cloudInside))
-            {
-                one.intensity=(TrackerList[i].ID)%255;
-            }
-            TrackerList_swap.push_back(TrackerList[i]);
-        }
+        if(frameID - track.getLastFnumber() <= 5)
+            TrackerList_swap.push_back(track);
     }
     TrackerList.swap(TrackerList_swap);
 
-    time_=cur_time;
+    for(int i=0;i<figureBelong.size();i++){
+        int idx=figureBelong[i];
+        if(idx==-1) continue;
+
+        TrackerList_swap[idx]._pts_inside=TrackerList_swap[idx].FiguresPro[0]._pts_inside;
+        for(auto &pt:TrackerList_swap[idx]._pts_inside){
+            pt.intensity=(TrackerList_swap[idx].ID%10)*10;
+        }
+    }
+
+//    for(auto &group:TrackerList){
+//        group._pts_inside=group.FiguresPro[0]._pts_inside;
+//        for(auto &pt:group._pts_inside){
+//            pt.intensity=(group.ID%10)*10;
+//        }
+//    }
+
+    //time_=cur_time;
     ////show
 
 }
 
+void Tracker::create_WithNewMember(const GroupProp &figure)
+{
+    for(unsigned i = 0 ; i < FIGURE_RESERVE ; i++)
+    {
+        FiguresPro[i] = figure;
+    }
+    PropertiesKF = figure;
+
+    ////KF
+    //KF.inputMeasurement_first(figure.center.x, figure.center.y);
+    //KF.outputCorrection(PropertiesKF.center.x, PropertiesKF.center.y);
+    countMeb_total = 1;
+
+}
+
+void Tracker::update_WithNewMember(const GroupProp &figure)
+{
+    for(unsigned i = FIGURE_RESERVE - 1 ; i > 0 ; i--)
+    {
+        FiguresPro[i] = FiguresPro[i - 1];
+    }
+    FiguresPro[0] = figure;
+    PropertiesKF._radius = figure._radius;
+
+    //KF
+    if(countMeb_total == 1)
+    {
+        KF.inputMeasurement_first(figure._center.x, figure._center.y, figure._center.x - FiguresPro[1]._center.x, figure._center.y - FiguresPro[1]._center.y);
+        PropertiesKF = figure;
+    }
+    else
+    {
+        KF.inputMeasurement(figure._center.x, figure._center.y);
+        KF.outputCorrection(PropertiesKF._center.x, PropertiesKF._center.y);
+    }
+    countMeb_total ++;
+
+    //update length,width and height
+    PropertiesKF._width_x=(FiguresPro[0]._width_x+FiguresPro[1]._width_x*(countMeb_total-1))/countMeb_total;
+    PropertiesKF._length_y=(FiguresPro[0]._length_y+FiguresPro[1]._length_y*(countMeb_total-1))/countMeb_total;
+    PropertiesKF._height_z=(FiguresPro[0]._height_z+FiguresPro[1]._height_z*(countMeb_total-1))/countMeb_total;
+}
+
+void Tracker::update_WithNoMember()
+{
+    KF.inputMeasurement(PropertiesKF._center.x, PropertiesKF._center.y);
+    KF.outputCorrection(PropertiesKF._center.x, PropertiesKF._center.y);
+}
+
+int Tracker::getLastFnumber()
+{
+    return FiguresPro[0].id;
+}
+
+int CTrackersCenter::getNewObjID()
+{
+    trackerIDCount++;
+    if (trackerIDCount > 50)
+    {
+        trackerIDCount = 0;
+    }
+    return trackerIDCount;
+}
