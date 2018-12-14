@@ -8,8 +8,8 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_conversions/pcl_conversions.h>
 
-#define VELO_LINE 32
-#define VELO_LINE_DOWN 27
+#define VELO_LINE 16
+#define VELO_LINE_DOWN 15
 #define ANG_THRESHOLD_COUNT 3600
 
 namespace pcl

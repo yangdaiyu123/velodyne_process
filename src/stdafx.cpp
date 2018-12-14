@@ -8,14 +8,6 @@ using namespace std;
 vector<float> g_threshold_const_positive[VELO_LINE_DOWN + 1]; //点云障碍物阈值，正
 vector<float> g_threshold_const_negative[VELO_LINE_DOWN + 1]; //点云障碍物阈值，负
 
-// double VELO_ANG_32[32] = {-30.67, -9.33, -29.33, -8.00, -28.00,
-//                           -6.67, -26.67, -5.33, -25.33, -4.00,
-//                           -24.00, -2.67, -22.67, -1.33, -21.33,
-//                           0.00, -20.00, 1.33, -18.67, 2.67,
-//                           -17.33, 4.00, -16.00, 5.33, -14.67,
-//                           6.67, -13.33, 8.00, -12.00, 9.33,
-//                           -10.67, 10.67};
-
 double VELO_ANG_32[32] = {-30.67, -29.33, -28.00, -26.67, -25.33,
                           -24.00, -22.67, -21.33, -20.00, -18.67,
                           -17.33, -16.00, -14.67, -13.33, -12.00,
@@ -26,7 +18,7 @@ double VELO_ANG_32[32] = {-30.67, -29.33, -28.00, -26.67, -25.33,
 double velo_ang_rad[32];
 
 //LiDAR pos information
-double g_LiDAR_pos[6] = {0, 1.3, 2.99, 2.12, 0.55, 180.0};
+double g_LiDAR_pos[6] = {0, 1.3, 2.2, -6.38, 29.38, 82.5};
 
 //RFans LiDAR offset per line of four lines
 //int off_idx[4]={0,55,14,70};
@@ -70,7 +62,7 @@ void filterThresholdOfObstacle(double laserHeightM, double laserPitchD, double a
 {
     for (unsigned i = 0; i < VELO_LINE; i++)
     {
-        velo_ang_rad[i] = VELO_ANG_32[i] / 180.0 * M_PI;
+        velo_ang_rad[i] = (-15.0+2*i) / 180.0 * M_PI;
     }
 
     //parameters initialization
@@ -116,21 +108,26 @@ pcl::PointXYZI transform_point(pcl::PointXYZI pt)
     double dy = g_LiDAR_pos[1];
     double dz = g_LiDAR_pos[2];
 
+    pcl::PointXYZI out1,out2,out3;
+
     //rotate the points from lidar to vehicle
-    pt.y = pt.y * cos(pitchR) - pt.z * sin(pitchR);
-    pt.z = pt.y * sin(pitchR) + pt.z * cos(pitchR);
+    out1.y = pt.y * cos(pitchR) - pt.z * sin(pitchR);
+    out1.z = pt.y * sin(pitchR) + pt.z * cos(pitchR);
+    out1.x = pt.x;
 
-    pt.x = pt.x * cos(rollR) + pt.z * sin(rollR);
-    pt.z = -pt.x * sin(rollR) + pt.z * cos(rollR);
+    out2.x = out1.x * cos(rollR) + out1.z * sin(rollR);
+    out2.z = -out1.x * sin(rollR) + out1.z * cos(rollR);
+    out2.y = out1.y;
 
-    pt.x = pt.x * cos(yawR) - pt.y * sin(yawR);
-    pt.y = pt.x * sin(yawR) + pt.y * cos(yawR);
+    out3.x = out2.x * cos(yawR) - out2.y * sin(yawR);
+    out3.y = out2.x * sin(yawR) + out2.y * cos(yawR);
+    out3.z = out2.z;
 
-    pt.x += dx;
-    pt.y += dy;
-    pt.z += dz;
+    out3.x += dx;
+    out3.y += dy;
+    out3.z += dz;
 
-    return pt;
+    return out3;
 }
 
 void readCaliFile(std::string path)

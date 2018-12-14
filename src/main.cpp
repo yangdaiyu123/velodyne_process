@@ -24,7 +24,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input)
     //    ros::Rate loop_rt(10);
     double t1 = pcl::getTime();
     // Create a container for the data.
-    sensor_msgs::PointCloud2 output;
+    // sensor_msgs::PointCloud2 output;
 
     //transfer msg to PointCloud
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_data(new pcl::PointCloud<pcl::PointXYZI>);
@@ -40,26 +40,31 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input)
     cloud_data->height = cloud_data->size() / VELO_LINE;
 
     // Do data processing here...
-    //    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_swap(new pcl::PointCloud<pcl::PointXYZI>);
+    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_swap(new pcl::PointCloud<pcl::PointXYZI>);
     pcl::PointCloud<PointSrc>::Ptr cloud_src(new pcl::PointCloud<PointSrc>);
     for (int i = 0; i < cloud_data->size(); i++)
     {
         pcl::PointXYZI temp_pt = cloud_data->points[i];
+        temp_pt=transform_point(temp_pt);
         float x = temp_pt.x;
         float y = temp_pt.y;
         float z = temp_pt.z;
         float radius = sqrt(x * x + y * y + z * z);
         float angle = float(atan2(y, x) / M_PI * 180);
-        PointSrc tmp(radius,angle);
+        pcl::PointSrc tmp;
+        tmp.radius=radius;
+        tmp.angle=angle;
         cloud_src->push_back(tmp);
+        cloud_swap->push_back(temp_pt);
     }
+    std::cout << "transform time is " << pcl::getTime() - t1 << std::endl;
 
     vector<int> obs_idx;
     HazardDetection hazardDetection;
-    hazardDetection.detectHazardPoint(cloud_data, cloud_src, obs_idx);
+    hazardDetection.detectHazardPoint(cloud_swap, cloud_src, obs_idx);
 
     GridCreator grid_obs;
-    grid_obs.createGrid(cloud_data, obs_idx);
+    grid_obs.createGrid(cloud_swap, obs_idx);
 
     CurbDetection curb_detection(grid_obs.grid_obs_points_);
     curb_detection.detectCurb();
@@ -69,7 +74,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input)
     trackersCenter.inputSingFrameFigures(obsCluster.group_vec(), g_frame_num, pcl::getTime());
 
     //show
-    cloud_show::show_points(trackersCenter, curb_detection, obs_idx, cloud_data);
+    cloud_show::show_points(trackersCenter, curb_detection, obs_idx, cloud_swap);
 
     g_frame_num++;
 
@@ -84,11 +89,12 @@ int main(int argc, char **argv)
     // Initialize ROS
     ros::init(argc, argv, "velo_process");
     ros::NodeHandle nh;
+    ros::NodeHandle private_nh("~");
 
     // Create a ROS subscriber for the input point cloud
-    //    ros::Subscriber sub = nh.subscribe("/rfans_driver/rfans_points", 1, cloud_cb);
-    ros::Subscriber sub = nh.subscribe("/velodyne_points", 1, cloud_cb);
-    //ros::Subscriber sub=nh.subscribe("/connector/lidar",1,cloud_cb);
+//    ros::Subscriber sub = nh.subscribe("/rfans_driver/rfans_points", 1, cloud_cb);
+//    ros::Subscriber sub = nh.subscribe("/velodyne_points", 1, cloud_cb);
+    ros::Subscriber sub=nh.subscribe("/rslidar_points",1,cloud_cb);
 
     // Create a ROS publisher for the output point cloud
     //    pub = nh.advertise<std_msgs::String>("/velo_process/img", 1);
@@ -96,9 +102,9 @@ int main(int argc, char **argv)
     //readCaliFile(g_file_dir+"Testdata-001-Calib/Testdata-001-HDL32-E.txt");
 
     //calculate obstacle _angle threshold, run only once
-    filterThresholdOfObstacle(g_LiDAR_pos[2], g_LiDAR_pos[3], 0, 0, 0.1);
+    filterThresholdOfObstacle(0.0, 0.0, 0, 0, 0.1);
 
-    cloud_show::init_pub();
+    cloud_show::init_pub(private_nh);
 
     // Spin
     ros::spin();

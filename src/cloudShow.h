@@ -19,7 +19,7 @@ namespace cloud_show{
     extern ros::Publisher pub_box;
     extern ros::Publisher pub;
 
-    void init_pub();
+    void init_pub(ros::NodeHandle nh);
 
     void show_points(const CTrackersCenter& trackingCenter,const CurbDetection& curbDetection,
     std::vector<int> &obs_idx,pcl::PointCloud<pcl::PointXYZI>::ConstPtr cloud_data);

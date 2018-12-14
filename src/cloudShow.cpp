@@ -11,13 +11,12 @@ ros::Publisher cloud_show::pub;
 
 const string frame_id = "velodyne";
 
-void cloud_show::init_pub()
+void cloud_show::init_pub(ros::NodeHandle nh)
 {
-    ros::NodeHandle nh;
-    pub_obs = nh.advertise<sensor_msgs::PointCloud2>("/velo_process/obs", 1);
-    pub_curb = nh.advertise<sensor_msgs::PointCloud2>("/velo_process/curb_lines", 1);
-    pub_box = nh.advertise<visualization_msgs::MarkerArray>("/velo_process/MarkerArray", 10);
-    pub = nh.advertise<sensor_msgs::PointCloud2>("/velo_process/cloud", 1);
+    pub_obs = nh.advertise<sensor_msgs::PointCloud2>("obs", 1);
+    pub_curb = nh.advertise<sensor_msgs::PointCloud2>("curb_lines", 1);
+    pub_box = nh.advertise<visualization_msgs::MarkerArray>("MarkerArray", 10);
+    pub = nh.advertise<sensor_msgs::PointCloud2>("cloud", 1);
 }
 
 visualization_msgs::Marker get_box_marker(const Tracker &tracker)
@@ -35,7 +34,7 @@ visualization_msgs::Marker get_box_marker(const Tracker &tracker)
     markerBox.color.g = 1;
     markerBox.color.r = 1;
     markerBox.color.a = 1;
-    markerBox.lifetime = ros::Duration(0.2);
+    markerBox.lifetime = ros::Duration(0);
     geometry_msgs::Point p0, p1, p2, p3, p00, p01, p02, p03, p0_p01, p1_p01, pl2, pl3;
     //four bottom corner point
     p0.x = min_point_AABB.data[0];
