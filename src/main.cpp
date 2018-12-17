@@ -13,8 +13,9 @@
 #include "road_curb_detection.h"
 #include "hazard_point_detect.h"
 #include "grid_obs_create.h"
-#include "cloudShow.h"
+#include "cloud_show.h"
 #include "obs_cluster.h"
+#include "obs_detection_by_altitude.h"
 
 CTrackersCenter trackersCenter;
 int g_frame_num = 0;
@@ -73,21 +74,29 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input)
 	std::cout << "transform time is " << pcl::getTime() - t1 << std::endl;
 
 	vector<int> obs_idx;
-	HazardDetection hazardDetection;
-	hazardDetection.detectHazardPoint(cloud_swap, cloud_src, obs_idx);
+	// HazardDetection hazardDetection;
+	// hazardDetection.detectHazardPoint(cloud_swap, cloud_src, obs_idx);
+	ObstacleDetection obstacleDetection;
+	obstacleDetection.detectObstacle(cloud_swap,obs_idx);
 
-	GridCreator grid_obs;
-	grid_obs.createGrid(cloud_swap, obs_idx);
+	// GridCreator grid_obs;
+	// grid_obs.createGrid(cloud_swap, obs_idx);
 
-	CurbDetection curb_detection(grid_obs.grid_obs_points_);
-	curb_detection.detectCurb();
+	// CurbDetection curb_detection(grid_obs.grid_obs_points_);
+	// curb_detection.detectCurb();
 
-	ObsCluster obsCluster(grid_obs.grid_obs_points_, curb_detection);
-	obsCluster.cluster();
-	trackersCenter.inputSingFrameFigures(obsCluster.group_vec(), g_frame_num, pcl::getTime());
+	// ObsCluster obsCluster(grid_obs.grid_obs_points_, curb_detection);
+	// obsCluster.cluster();
+	// trackersCenter.inputSingFrameFigures(obsCluster.group_vec(), g_frame_num, pcl::getTime());
+
+	pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_obs(new pcl::PointCloud<pcl::PointXYZI>);
+	for(auto one : obs_idx)
+	{
+		cloud_obs->push_back(cloud_swap->points[one]);
+	}
 
 	//show
-	cloud_show::show_points(trackersCenter, curb_detection, obs_idx, cloud_swap);
+	cloud_show::show_points(cloud_obs, cloud_swap);
 
 	g_frame_num++;
 
@@ -124,11 +133,6 @@ int main(int argc, char **argv)
 	//    ros::Subscriber sub = nh.subscribe("/rfans_driver/rfans_points", 1, cloud_cb);
 	//    ros::Subscriber sub = nh.subscribe("/velodyne_points", 1, cloud_cb);
 	ros::Subscriber sub = nh.subscribe("/rslidar_points", 1, cloud_cb);
-
-	// Create a ROS publisher for the output point cloud
-	//    pub = nh.advertise<std_msgs::String>("/velo_process/img", 1);
-
-	//readCaliFile(g_file_dir+"Testdata-001-Calib/Testdata-001-HDL32-E.txt");
 
 	//calculate obstacle _angle threshold, run only once
 	filterThresholdOfObstacle(0.0, 0.0, 0, 0, 0.1);

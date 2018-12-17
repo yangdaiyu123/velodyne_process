@@ -9,7 +9,7 @@
 
 #include <pcl/kdtree/kdtree_flann.h>
 
-#include "kalmanFilter.h"
+#include "kalman_filter.h"
 #include "road_curb_detection.h"
 
 enum PointType{noise,border,core};
