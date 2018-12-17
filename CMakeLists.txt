@@ -12,9 +12,15 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   roscpp
   sensor_msgs
+  dynamic_reconfigure
+)
+
+generate_dynamic_reconfigure_options(
+  cfg/dofCfg.cfg
 )
 
 find_package(OpenCV REQUIRED)
+
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -144,17 +150,9 @@ include_directories(
 ## target back to the shorter version for ease of user use
 ## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
 # set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
-add_executable(${PROJECT_NAME}_node src/main.cpp
-        src/grid_obs_create.cpp
-        src/hazard_point_detect.cpp
-        src/road_curb_detection.cpp
-        src/RansacLine.cpp
-        src/cloudShow.cpp
-        src/stdafx.cpp
-        src/obs_cluster.cpp
-        src/kalmanFilter.cpp
-        # src/hdl_grabber.cpp
-        src/cluster_obs_by_image.cpp)
+
+aux_source_directory(src SRCSDIR)
+add_executable(${PROJECT_NAME}_node ${SRCSDIR})
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above

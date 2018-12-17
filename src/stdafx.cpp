@@ -18,7 +18,8 @@ double VELO_ANG_32[32] = {-30.67, -29.33, -28.00, -26.67, -25.33,
 double velo_ang_rad[32];
 
 //LiDAR pos information
-double g_LiDAR_pos[6] = {0, 1.3, 2.2, -6.38, 29.38, 82.5};
+// double g_LiDAR_pos[6] = {0, 1.3, 2.2, -6.38, 29.38, 82.5};
+double g_LiDAR_pos[6] = {0, 1.3, 2.2, -3.38, 29.38, 82.5};
 
 //RFans LiDAR offset per line of four lines
 //int off_idx[4]={0,55,14,70};

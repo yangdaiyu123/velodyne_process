@@ -1,0 +1,16 @@
+<!-- -*- mode: XML -*- args="1" -->
+
+<launch>
+
+<arg name="pcap" value="/home/howstar/data/rslidar_data/lidarData_ShenGu/left11.pcap"/>
+
+<include file="$(find rslidar_pointcloud)/launch/rs_lidar_16.launch" />
+
+<!-- -->
+<node pkg="velo_process" type="velo_process_node" name="velo_process_node" output="screen" />
+
+
+<node name="rviz" pkg="rviz" type="rviz" args="-d $(find velo_process)/cluster.rviz" required="true" />
+
+
+</launch>

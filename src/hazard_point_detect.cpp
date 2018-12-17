@@ -31,9 +31,10 @@ int get_logical_id(int pos)
 //}
 
 unsigned
-hdl_cloudIndex(int idx_sweep,int idx_beam,int num_sweep)
+hdl_cloudIndex(int idx_sweep, int idx_beam, int num_sweep)
 {
-    return (unsigned)(idx_beam * num_sweep + idx_sweep);
+    int idx = idx_beam < 8 ? idx_beam : 23 - idx_beam;
+    return (unsigned)(idx * num_sweep + idx_sweep);
 }
 
 double
@@ -48,7 +49,7 @@ calculateAlphaD(float d0, float d1, double angleR)
 }
 
 HazardDetection::HazardDetection()
-        : lidar_width_(VELO_LINE)
+    : lidar_width_(VELO_LINE)
 {
 }
 
@@ -72,9 +73,9 @@ void HazardDetection::detectHazardPoint(pcl::PointCloud<pcl::PointXYZI>::ConstPt
         std::vector<bool> pTan2_Ang(VELO_LINE, 0);
         for (unsigned j = 1; j < VELO_LINE_DOWN - 1; j++)
         {
-            unsigned int index = hdl_cloudIndex(i, j,lidar_height_);
-            unsigned int index_next = hdl_cloudIndex(i, j + 1,lidar_height_);
-            unsigned int index_pre = hdl_cloudIndex(i, j - 1,lidar_height_);
+            unsigned int index = hdl_cloudIndex(i, j, lidar_height_);
+            unsigned int index_next = hdl_cloudIndex(i, j + 1, lidar_height_);
+            unsigned int index_pre = hdl_cloudIndex(i, j - 1, lidar_height_);
             double L1 = cloudscr_ptr->points[index_pre].radius;
             double L2 = cloudscr_ptr->points[index].radius;
             double L3 = cloudscr_ptr->points[index_next].radius;
@@ -93,18 +94,18 @@ void HazardDetection::detectHazardPoint(pcl::PointCloud<pcl::PointXYZI>::ConstPt
             {
                 wavyAng[j] = WAVEANG_IGNORE;
             }
-            else if(std::isnan(L1) || std::isnan(L2) || std::isnan(L3))
+            else if (std::isnan(L1) || std::isnan(L2) || std::isnan(L3))
             {
                 wavyAng[j] = WAVEANG_IGNORE;
             }
-                /*	else if (shadowFlag[index])
+            /*	else if (shadowFlag[index])
                     {
                         wavyAng[j] = WAVEANG_IGNORE;
                     }*/
-                // else if (P1.z < -3.5 || P2.z < -3.5 || P3.z < -3.5)//过滤水下的点
-                // {
-                // 	wavyAng[j] = WAVEANG_IGNORE;
-                // }
+            // else if (P1.z < -3.5 || P2.z < -3.5 || P3.z < -3.5)//过滤水下的点
+            // {
+            // 	wavyAng[j] = WAVEANG_IGNORE;
+            // }
 
             else
             {
@@ -136,37 +137,37 @@ void HazardDetection::detectHazardPoint(pcl::PointCloud<pcl::PointXYZI>::ConstPt
                 float threshold_negative1 = g_threshold_const_negative[j + 1][threshold_index];
 
                 float angT0, angT1;
-                if (j < 10)
-                {
-                    angT0 = thetaAng[j] + velo_ang_rad[j];
-                    angT1 = thetaAng[j + 1] + velo_ang_rad[j + 1];
-                }
-                else
-                {
-                    angT0 = wavyAng[j] - M_PI;
-                    angT1 = wavyAng[j + 1] - M_PI;
-                }
+                // if (j < 10)
+                // {
+                //     angT0 = thetaAng[j] + velo_ang_rad[j];
+                //     angT1 = thetaAng[j + 1] + velo_ang_rad[j + 1];
+                // }
+                // else
+                // {
+                angT0 = wavyAng[j] - M_PI;
+                angT1 = wavyAng[j + 1] - M_PI;
+                // }
                 if (angT0 > threshold_positive0 && angT1 < threshold_negative1)
                 {
                     //	cloud_obs_pm->points.push_back(cloud_ptr->points[hdl_cloudIndex(i, j)]);
                     //	cloud_obs->points.push_back(cloud_ptr->points[hdl_cloudIndex(i, j)]);
-                    resultIdx.push_back(hdl_cloudIndex(i, j,lidar_height_));
+                    resultIdx.push_back(hdl_cloudIndex(i, j, lidar_height_));
                 }
                 else if (angT0 < threshold_negative0 && angT1 > threshold_positive1)
                 {
                     //	cloud_obs_mp->points.push_back(cloud_ptr->points[hdl_cloudIndex(i, j + 1)]);
                     //cloud_obs->points.push_back(cloud_ptr->points[hdl_cloudIndex(i, j + 1)]);
-                    resultIdx.push_back(hdl_cloudIndex(i, j + 1,lidar_height_));
+                    resultIdx.push_back(hdl_cloudIndex(i, j + 1, lidar_height_));
                 }
-                    // else if (abs(angT0) > threshold_positive0 &&
-                    // 		 abs(angT1) > threshold_positive1)
-                    // {
-                    // 	//cloud_obs->points.push_back(cloud_ptr->points[hdl_cloudIndex(i, j + 1)]);
-                    // 	resultIdx.push_back(hdl_cloudIndex(i, j + 1));
-                    // }
+                // else if (abs(angT0) > threshold_positive0 &&
+                // 		 abs(angT1) > threshold_positive1)
+                // {
+                // 	//cloud_obs->points.push_back(cloud_ptr->points[hdl_cloudIndex(i, j + 1)]);
+                // 	resultIdx.push_back(hdl_cloudIndex(i, j + 1));
+                // }
                 else if (/*abs(angT0-M_PI)<10.0*M_PI/180 && */ pTan2_Ang[j])
                 {
-                    resultIdx.push_back(hdl_cloudIndex(i, j,lidar_height_));
+                    resultIdx.push_back(hdl_cloudIndex(i, j, lidar_height_));
                 }
             }
         }
