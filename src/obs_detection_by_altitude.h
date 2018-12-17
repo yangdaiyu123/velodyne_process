@@ -5,11 +5,14 @@
 
 class ObstacleDetection
 {
-  public:
-    ObstacleDetection();
-    ~ObstacleDetection();
+public:
+  ObstacleDetection();
+  ~ObstacleDetection();
 
-    void detectObstacle(pcl::PointCloud<pcl::PointXYZI>::ConstPtr cloud, std::vector<int> &obs_idx);
+  void detectObstacle(pcl::PointCloud<pcl::PointXYZI>::ConstPtr cloud, std::vector<int> &obs_idx);
+
+private:
+  pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_road_;
 };
 
 #endif
