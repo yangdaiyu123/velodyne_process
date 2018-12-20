@@ -8,9 +8,14 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_conversions/pcl_conversions.h>
 
-#define VELO_LINE 16
-#define VELO_LINE_DOWN 15
 #define ANG_THRESHOLD_COUNT 3600
+
+typedef pcl::PointCloud<pcl::PointXYZI> Cloud;
+typedef Cloud::Ptr CloudPtr;
+typedef Cloud::ConstPtr CloudConstPtr;
+
+const int kLidarLine = 16;
+const int kLidarLineDown = 15;
 
 namespace pcl
 {
@@ -37,8 +42,8 @@ extern double VELO_ANG_32[32];
 extern double g_LiDAR_pos[6];
 extern double velo_ang_rad[32];
 
-extern std::vector<float> g_threshold_const_positive[VELO_LINE_DOWN + 1]; //点云障碍物阈值，正
-extern std::vector<float> g_threshold_const_negative[VELO_LINE_DOWN + 1]; //点云障碍物阈值，负
+extern std::vector<float> g_threshold_const_positive[kLidarLineDown + 1]; //点云障碍物阈值，正
+extern std::vector<float> g_threshold_const_negative[kLidarLineDown + 1]; //点云障碍物阈值，负
 
 //extern std::string g_file_dir;
 
@@ -51,7 +56,7 @@ inline int get_idx(int idx_beam, int idx_sweep)
 {
     //(pos<16) ? (pos * 2) : ((pos - 16) * 2 + 1);
     idx_beam = (idx_beam < 16) ? idx_beam * 2 : (idx_beam - 16) * 2 + 1;
-    return idx_sweep * VELO_LINE + idx_beam;
+    return idx_sweep * kLidarLine + idx_beam;
 }
 
 //inline int get_idx_with_offset(int idx_sweep,int idx_beam,int num_sweep){

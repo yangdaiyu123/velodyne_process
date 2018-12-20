@@ -152,6 +152,7 @@ include_directories(
 # set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
 
 aux_source_directory(src SRCSDIR)
+
 add_executable(${PROJECT_NAME}_node ${SRCSDIR})
 
 ## Add cmake target dependencies of the executable

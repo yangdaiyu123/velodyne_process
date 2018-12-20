@@ -57,11 +57,11 @@ void GridCreator::createGrid(pcl::PointCloud<pcl::PointXYZI>::ConstPtr obsCloud,
 		temp1.x = x;
 		temp1.y = y;
 		temp1.z = z;
-		
+
 		grid_obs_points_.push_back(temp1);
-		
+
 		// pcl::PointXYZI p0_t = transform_point(temp1);
-		pcl::PointXYZI p0_t= temp1;
+		pcl::PointXYZI p0_t = temp1;
 		x = p0_t.x;
 		y = p0_t.y;
 		z = p0_t.z;
@@ -110,14 +110,7 @@ void GridCreator::calGridInfo(pcl::PointCloud<pcl::PointXYZI>::ConstPtr obsCloud
 			stdev = sqrt(stdev / (pnum - 1));
 			grids_pt_[i].stdz = stdev;
 
-			if (mean > 0)
-			{
-				encode_grid_[i] = 1;
-			}
-			else
-			{
-				encode_grid_[i] = 2;
-			}
+			encode_grid_[i] = mean * 100 + 100;
 		}
 	}
 }

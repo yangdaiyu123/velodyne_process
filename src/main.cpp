@@ -17,6 +17,7 @@
 #include "cloud_show.h"
 #include "obs_cluster.h"
 #include "obs_detection_by_altitude.h"
+#include "PlaneExtractionBySeed.h"
 
 // CTrackersCenter trackersCenter;
 int g_frame_num = 0;
@@ -28,36 +29,36 @@ using namespace pcl::console;
 
 void savePoints(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud)
 {
-    char *cwd = NULL;
-    cwd = getcwd(NULL, 0);
+	char *cwd = NULL;
+	cwd = getcwd(NULL, 0);
 
-    const char *path16 = "rslidar";
-    int mode_all = S_IRWXU | S_IRWXG | S_IRWXO;
-    mkdir(path16, mode_all);
-    chdir(path16);
-    std::stringstream ss;
-    ss << g_frame_num << "_line";
-    std::string str;
-    ss >> str;
-    if (mkdir(str.c_str(), mode_all) == 0)
-    {
-        for (int i = 0; i < cloud->size(); i++)
-        {
-            int idx = i % 16;
-            std::stringstream ss1;
-            ss1 << str << "/" << str << "_" << idx << ".txt";
-            std::string str1;
-            ss1 >> str1;
-            ofstream file(str1, ios::app);
-            file << cloud->points[i].x << " "
-                 << cloud->points[i].y << " "
-                 << cloud->points[i].z << endl;
-            file.close();
-        }
-    }
+	const char *path16 = "rslidar";
+	int mode_all = S_IRWXU | S_IRWXG | S_IRWXO;
+	mkdir(path16, mode_all);
+	chdir(path16);
+	std::stringstream ss;
+	ss << g_frame_num << "_line";
+	std::string str;
+	ss >> str;
+	if (mkdir(str.c_str(), mode_all) == 0)
+	{
+		for (int i = 0; i < cloud->size(); i++)
+		{
+			int idx = i % 16;
+			std::stringstream ss1;
+			ss1 << str << "/" << str << "_" << idx << ".txt";
+			std::string str1;
+			ss1 >> str1;
+			ofstream file(str1, ios::app);
+			file << cloud->points[i].x << " "
+				 << cloud->points[i].y << " "
+				 << cloud->points[i].z << endl;
+			file.close();
+		}
+	}
 
-    chdir(cwd);
-    free(cwd);
+	chdir(cwd);
+	free(cwd);
 }
 
 void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input)
@@ -79,14 +80,14 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input)
 		return;
 	}
 
-	if (cloud_data->size() % VELO_LINE != 0)
+	if (cloud_data->size() % kLidarLine != 0)
 	{
 		cout << "WARNING:The number of point clouds is not an integer multiple of 32!" << endl;
 		//return;
 	}
 
-	cloud_data->width = VELO_LINE;
-	cloud_data->height = cloud_data->size() / VELO_LINE;
+	// cloud_data->width = kLidarLine;
+	// cloud_data->height = cloud_data->size() / kLidarLine;
 
 	// Do data processing here...
 	pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_swap(new pcl::PointCloud<pcl::PointXYZI>);
@@ -102,7 +103,6 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input)
 			temp_pt.z = 0;
 			temp_pt.intensity = 120;
 		}
-		temp_pt = transform_point(temp_pt);
 		float x = temp_pt.x;
 		float y = temp_pt.y;
 		float z = temp_pt.z;
@@ -112,17 +112,22 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input)
 		tmp.radius = radius;
 		tmp.angle = angle;
 		cloud_src->push_back(tmp);
+
+		temp_pt = transform_point(temp_pt);
 		cloud_swap->push_back(temp_pt);
 	}
 	// std::cout << "the number of nan points are " << nan_num << std::endl;
 	// std::cout << "total number of points are " << cloud_data->size() << std::endl;
 	std::cout << "transform time is " << pcl::getTime() - t1 << std::endl;
 
-	vector<int> obs_idx;
+	// vector<int> obs_idx;
 	// HazardDetection hazardDetection;
 	// hazardDetection.detectHazardPoint(cloud_swap, cloud_src, obs_idx);
-	ObstacleDetection obstacleDetection;
-	obstacleDetection.detectObstacle(cloud_swap, obs_idx);
+
+	// ObstacleDetection obstacleDetection;
+	// obstacleDetection.detectObstacle(cloud_swap, obs_idx);
+	PlaneExtractionBySeed planeExtractionBySeed(cloud_swap,cloud_src);
+	planeExtractionBySeed.extractRoadPtsBySeed();
 
 	// GridCreator grid_obs;
 	// grid_obs.createGrid(cloud_swap, obs_idx);
@@ -134,14 +139,14 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input)
 	// obsCluster.cluster();
 	// trackersCenter.inputSingFrameFigures(obsCluster.group_vec(), g_frame_num, pcl::getTime());
 
-	pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_obs(new pcl::PointCloud<pcl::PointXYZI>);
-	for (auto one : obs_idx)
-	{
-		cloud_obs->push_back(cloud_swap->points[one]);
-	}
+	// pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_obs(new pcl::PointCloud<pcl::PointXYZI>);
+	// for (auto one : obs_idx)
+	// {
+	// 	cloud_obs->push_back(cloud_swap->points[one]);
+	// }
 
 	//show
-	cloud_show::show_points(cloud_obs, cloud_swap);
+	cloud_show::show_points(planeExtractionBySeed.road(), cloud_swap);
 
 	g_frame_num++;
 
@@ -174,10 +179,10 @@ int main(int argc, char **argv)
 	fun_cb = boost::bind(&callback, _1, _2);
 	server.setCallback(fun_cb);
 
-	if(find_switch(argc,argv,"-s"))
-    {
-        save_path=true;
-    }
+	if (find_switch(argc, argv, "-s"))
+	{
+		save_path = true;
+	}
 
 	// Create a ROS subscriber for the input point cloud
 	//    ros::Subscriber sub = nh.subscribe("/rfans_driver/rfans_points", 1, cloud_cb);

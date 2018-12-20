@@ -3,10 +3,10 @@
 //
 #include "stdafx.h"
 
-using namespace std;
+using std::vector;
 
-vector<float> g_threshold_const_positive[VELO_LINE_DOWN + 1]; //点云障碍物阈值，正
-vector<float> g_threshold_const_negative[VELO_LINE_DOWN + 1]; //点云障碍物阈值，负
+vector<float> g_threshold_const_positive[kLidarLineDown + 1]; //点云障碍物阈值，正
+vector<float> g_threshold_const_negative[kLidarLineDown + 1]; //点云障碍物阈值，负
 
 double VELO_ANG_32[32] = {-30.67, -29.33, -28.00, -26.67, -25.33,
                           -24.00, -22.67, -21.33, -20.00, -18.67,
@@ -61,14 +61,14 @@ float calculatePAngleThrePitch(float obstacleHeightThre, float laserHeight, floa
 
 void filterThresholdOfObstacle(double laserHeightM, double laserPitchD, double addConstant, double mulConstant, double obsHeightThred)
 {
-    for (unsigned i = 0; i < VELO_LINE; i++)
+    for (unsigned i = 0; i < kLidarLine; i++)
     {
         velo_ang_rad[i] = (-15.0+2*i) / 180.0 * M_PI;
     }
 
     //parameters initialization
     ///count
-    int numLine = VELO_LINE_DOWN;
+    int numLine = kLidarLineDown;
     int numAng = ANG_THRESHOLD_COUNT / 2;
     //constant threshold
     //    float obstacleHeightThre = 0.1;
@@ -133,8 +133,8 @@ pcl::PointXYZI transform_point(pcl::PointXYZI pt)
 
 void readCaliFile(std::string path)
 {
-    ifstream ifstream1(path);
-    string head;
+    std::ifstream ifstream1(path);
+    std::string head;
     ifstream1 >> head >> g_LiDAR_pos[3] >> g_LiDAR_pos[4] >> g_LiDAR_pos[5];
     ifstream1 >> head >> g_LiDAR_pos[0] >> g_LiDAR_pos[1] >> g_LiDAR_pos[2];
 

@@ -27,7 +27,7 @@ int get_logical_id(int pos)
 //hdl_cloudIndex(int height, int width)
 //{
 //	int physicalid = get_logical_id(width);
-//	return (unsigned)(height * VELO_LINE + physicalid);
+//	return (unsigned)(height * kLidarLine + physicalid);
 //}
 
 unsigned
@@ -49,7 +49,7 @@ calculateAlphaD(float d0, float d1, double angleR)
 }
 
 HazardDetection::HazardDetection()
-    : lidar_width_(VELO_LINE)
+    : lidar_width_(kLidarLine)
 {
 }
 
@@ -68,10 +68,10 @@ void HazardDetection::detectHazardPoint(pcl::PointCloud<pcl::PointXYZI>::ConstPt
 
     for (unsigned i = 0; i < lidar_height_; i++)
     {
-        std::vector<double> wavyAng(VELO_LINE, WAVEANG_IGNORE);
-        std::vector<double> thetaAng(VELO_LINE);
-        std::vector<bool> pTan2_Ang(VELO_LINE, 0);
-        for (unsigned j = 1; j < VELO_LINE_DOWN - 1; j++)
+        std::vector<double> wavyAng(kLidarLine, WAVEANG_IGNORE);
+        std::vector<double> thetaAng(kLidarLine);
+        std::vector<bool> pTan2_Ang(kLidarLine, 0);
+        for (unsigned j = 1; j < kLidarLineDown - 1; j++)
         {
             unsigned int index = hdl_cloudIndex(i, j, lidar_height_);
             unsigned int index_next = hdl_cloudIndex(i, j + 1, lidar_height_);
@@ -121,8 +121,8 @@ void HazardDetection::detectHazardPoint(pcl::PointCloud<pcl::PointXYZI>::ConstPt
         }
         /////judgment for every face(i)
         float delt_Ang_thre = 360.0 / ANG_THRESHOLD_COUNT;
-        float delt_Ang_Measure = 360.0 / (cloud_ptr->points.size() / VELO_LINE);
-        for (unsigned int j = 1; j < VELO_LINE_DOWN; j++)
+        float delt_Ang_Measure = 360.0 / (cloud_ptr->points.size() / kLidarLine);
+        for (unsigned int j = 1; j < kLidarLineDown; j++)
         {
             if (abs(wavyAng[j] - WAVEANG_IGNORE) < 0.1 || abs(wavyAng[j + 1] - WAVEANG_IGNORE) < 0.1)
             {
